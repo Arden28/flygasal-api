@@ -24,7 +24,7 @@ class PKfareService
     {
         // Retrieve PKfare API credentials from environment variables.
         // Ensure these are set in your .env file.
-        $this->baseUrl = config('app.pkfare_api_base_url', 'https://api.pkfare.com/v2');
+        $this->baseUrl = config('app.pkfare_api_base_url', 'https://api.pkfare.com');
         $this->apiKey = config('app.pkfare_api_key');
         $this->apiSecret = config('app.pkfare_api_secret');
         $this->apiSignature = config('app.pkfare_api_signature');
