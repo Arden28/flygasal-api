@@ -67,7 +67,7 @@ class FlightController extends Controller
             return response()->json([
                 'message' => 'Flights retrieved successfully.',
                 'errorMsg' => $flights['errorMsg'] ?? null,
-                'errorCode' => $flights['errorMsg'] ?? null,
+                'errorCode' => $flights['errorCode'] ?? null,
                 'data' => $flights['data'] ?? $flights,
             ]);
 
