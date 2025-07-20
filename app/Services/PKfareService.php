@@ -14,6 +14,7 @@ class PKfareService
     protected string $baseUrl;
     protected string $apiKey;
     protected string $apiSecret;
+    protected string $apiSignature;
 
     /**
      * Constructor for PKfareService.
@@ -26,6 +27,7 @@ class PKfareService
         $this->baseUrl = config('app.pkfare_api_base_url', 'https://api.pkfare.com/v2');
         $this->apiKey = config('app.pkfare_api_key');
         $this->apiSecret = config('app.pkfare_api_secret');
+        $this->apiSignature = config('app.pkfare_api_signature');
 
         // Basic validation for API keys
         if (empty($this->apiKey) || empty($this->apiSecret)) {
@@ -120,41 +122,51 @@ class PKfareService
      */
     public function searchFlights(array $criteria): array
     {
-        // PKfare API documentation will specify the exact structure of the search request.
-        // This is a common structure, but adjust according to PKfare's docs.
+        // Prepare the authentication block
+        $partnerId = $this->apiKey;
+        $partnerKey = $this->apiSecret;
+        $sign = md5($partnerId . $partnerKey);
+        $tripType = $criteria['tripType'] ?? 'Oneway';
+
         $payload = [
-            'request' => [
-                'tripType' => $criteria['tripType'] ?? 'OneWay', // OneWay, RoundTrip, MultiCity
-                'cabinType' => $criteria['cabinType'] ?? 'Economy', // Economy, Business, First, PremiumEconomy
-                'passengers' => [
-                    'adults' => $criteria['adults'] ?? 1,
-                    'children' => $criteria['children'] ?? 0,
-                    'infants' => $criteria['infants'] ?? 0,
-                ],
-                'segments' => [],
+            'authentication' => [
+                'partnerId' => $partnerId,
+                'sign' => $sign,
+            ],
+            'search' => [
+                'adults' => $criteria['adults'] ?? 1,
+                'children' => $criteria['children'] ?? 0,
+                'infants' => $criteria['infants'] ?? 0,
+                'nonstop' => $criteria['nonstop'] ?? 0,
+                'airline' => $criteria['airline'] ?? '',
+                'solutions' => $criteria['solutions'] ?? 0,
+                'tag' => '',
+                'returnTagPrice' => 'Y',
+                'searchAirLegs' => [],
             ],
         ];
 
-        // Add flight segments based on trip type
-        if ($payload['request']['tripType'] === 'RoundTrip' || $payload['request']['tripType'] === 'OneWay') {
-            $payload['request']['segments'][] = [
-                'departureAirport' => $criteria['origin'],
-                'arrivalAirport' => $criteria['destination'],
-                'departureDate' => $criteria['departureDate'],
-            ];
-            if ($payload['request']['tripType'] === 'RoundTrip' && isset($criteria['returnDate'])) {
-                $payload['request']['segments'][] = [
-                    'departureAirport' => $criteria['destination'],
-                    'arrivalAirport' => $criteria['origin'],
-                    'departureDate' => $criteria['returnDate'],
-                ];
-            }
-        }
-        // TODO: Implement MultiCity logic if needed
+        // Add first leg
+        $payload['search']['searchAirLegs'][] = [
+            'cabinClass' => $criteria['cabinClass'] ?? '',
+            'departureDate' => $criteria['departureDate'],
+            'destination' => $criteria['destination'],
+            'origin' => $criteria['origin'],
+            'airline' => $criteria['airline'] ?? '',
+        ];
 
-        // The actual endpoint for flight search might be something like '/air/search' or '/flights/query'
-        // Consult PKfare documentation for the exact endpoint and request body.
-        return $this->post('/air/search', $payload);
+        // Optional return leg
+        if (!empty($criteria['returnDate'])) {
+            $payload['search']['searchAirLegs'][] = [
+                'cabinClass' => $criteria['cabinClass'] ?? '',
+                'departureDate' => $criteria['returnDate'],
+                'destination' => $criteria['origin'],     // Reverse destination
+                'origin' => $criteria['destination'],     // Reverse origin
+                'airline' => $criteria['airline'] ?? '',
+            ];
+        }
+
+        return $this->post('/json/shoppingV8', $payload);
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\PKfareService;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -34,7 +35,7 @@ class FlightController extends Controller
         try {
             // 1. Validate incoming request data
             $validatedData = $request->validate([
-                'tripType' => 'required|string|in:OneWay,RoundTrip,MultiCity',
+                'tripType' => 'nullable|string|in:OneWay,RoundTrip,MultiCity', //required
                 'origin' => 'required|string|size:3', // IATA code, e.g., 'NBO'
                 'destination' => 'required|string|size:3', // IATA code, e.g., 'JFK'
                 'departureDate' => 'required|date_format:Y-m-d|after_or_equal:today', // YYYY-MM-DD
@@ -48,7 +49,7 @@ class FlightController extends Controller
 
             // 2. Prepare criteria for PKfareService
             $criteria = [
-                'tripType' => $validatedData['tripType'],
+                'tripType' => $validatedData['tripType'] ?? null,
                 'origin' => strtoupper($validatedData['origin']), // Ensure IATA codes are uppercase
                 'destination' => strtoupper($validatedData['destination']),
                 'departureDate' => $validatedData['departureDate'],
@@ -75,7 +76,7 @@ class FlightController extends Controller
                 'message' => 'Validation Error',
                 'errors' => $e->errors(),
             ], 422); // Unprocessable Entity
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Handle other exceptions (e.g., PKfare API errors)
             Log::error('Flight search failed: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([

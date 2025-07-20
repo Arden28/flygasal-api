@@ -224,4 +224,5 @@ return [
     'pkfare_api_base_url' => env('PKFARE_API_BASE_URL', 'https://api.pkfare.com/v2'),
     'pkfare_api_key' => env('PKFARE_API_KEY'),
     'pkfare_api_secret' => env('PKFARE_API_SECRET'),
+    'pkfare_api_signature' => env('PKFARE_API_SIGNATURE'),
 ];
