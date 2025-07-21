@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\FlightController;
+use App\Http\Controllers\Api\ProfileController;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
@@ -41,10 +43,22 @@ Route::get('/proxy/countries', function () {
 // Authenticated routes (requires Sanctum token)
 // Routes within this group will require a valid API token for access.
 Route::middleware('auth:sanctum')->group(function () {
+
     // Get authenticated user's details
     Route::get('/user', function (Request $request) {
-        return response()->json($request->user());
+        $user = $request->user();
+
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone_number' => $user->phone_number,
+            'role' => $user->getRoleNames()->first(), // 'admin'
+        ]);
     });
+
+    // User Management
+    Route::apiResource('profile', ProfileController::class)->except(['index', 'store']);
 
     Route::post('/logout', [AuthController::class, 'logout']);
 

@@ -31,6 +31,7 @@ class AuthController extends Controller
                 'email' => 'required|string|email|max:255|unique:users',
                 'phone_number' => 'required|string|max:15|unique:users',
                 'password' => 'required|string|min:8|confirmed', // 'confirmed' checks for password_confirmation field
+                'role' =>     'nullable|string|in:agent,user'
             ]);
 
             // Create the new user
@@ -39,11 +40,12 @@ class AuthController extends Controller
                 'email' => $validatedData['email'],
                 'phone_number' => $validatedData['phone_number'],
                 'password' => Hash::make($validatedData['password']), // Hash the password
+                'is_active' => false
             ]);
 
             // Assign the default 'customer' role to the new user
             // Ensure the 'customer' role exists (seeded via RolesAndPermissionsSeeder)
-            $customerRole = Role::where('name', 'user')->first();
+            $customerRole = Role::where('name', $validatedData['role'])->first();
             if ($customerRole) {
                 $user->assignRole($customerRole);
             } else {

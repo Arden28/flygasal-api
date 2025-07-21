@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         Role::create(['name' => 'admin', 'guard_name' => 'api']);
+        Role::create(['name' => 'agent', 'guard_name' => 'api']);
         Role::create(['name' => 'user', 'guard_name' => 'api']);
         Permission::create(['name' => 'manage_roles', 'guard_name' => 'api']);
         Permission::create(['name' => 'manage_permissions', 'guard_name' => 'api']);

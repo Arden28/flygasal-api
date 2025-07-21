@@ -21,7 +21,7 @@ class UserController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('permission:manage-users');
+        // $this->middleware('permission:manage-users');
     }
 
     /**
@@ -114,11 +114,15 @@ class UserController extends Controller
      * Update the specified user in storage.
      *
      * @param Request $request
-     * @param User $user
      * @return \Illuminate\Http\JsonResponse
      */
-    public function update(Request $request, User $user)
+    public function update(Request $request, $id)
     {
+        if (!$id) {
+            return response()->json(['message' => 'User not found.'], 404);
+        }
+        $user = User::find($id);
+
         try {
             $validatedData = $request->validate([
                 'name' => 'sometimes|required|string|max:255',
