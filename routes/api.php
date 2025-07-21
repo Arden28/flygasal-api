@@ -83,6 +83,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // User Management (Admin specific)
         Route::apiResource('users', UserController::class); // Using alias for clarity
+        Route::post('/users/{id}/approve', [UserController::class, 'approve']);
 
         // Role & Permission Management
         Route::apiResource('roles', RoleController::class);

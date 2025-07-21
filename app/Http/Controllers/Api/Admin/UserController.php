@@ -194,4 +194,31 @@ class UserController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Approve a user by setting their account as active.
+     *
+     * @param  int  $id  The ID of the user to approve.
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function approve($id)
+    {
+        // Attempt to find the user by their ID
+        $user = User::find($id);
+
+        // If the user doesn't exist, return a 404 error response
+        if (!$user) {
+            return response()->json(['message' => 'User not found.'], 404);
+        }
+
+        // Set the user's status to active
+        $user->is_active = true;
+
+        // Save the changes to the database
+        $user->save();
+
+        // Return a success response
+        return response()->json(['message' => 'User approved successfully.']);
+    }
+
 }
