@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\FlightController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -30,6 +31,12 @@ Route::get('/status', function () {
 // Authentication Routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// Country Routes
+Route::get('/proxy/countries', function () {
+    $response = Http::get('https://apicountries.com/countries');
+    return $response->json();
+});
 
 // Authenticated routes (requires Sanctum token)
 // Routes within this group will require a valid API token for access.
