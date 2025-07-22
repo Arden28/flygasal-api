@@ -43,13 +43,13 @@ class FlightController extends Controller
                 'adults' => 'required|integer|min:1',
                 'children' => 'nullable|integer|min:0',
                 'infants' => 'nullable|integer|min:0',
-                'cabinType' => 'nullable|string|in:economy,Business,First,PremiumEconomy',
+                'cabinType' => 'nullable|string|in:Economy,Business,First,PremiumEconomy',
                 // Add more validation rules as per PKfare API requirements (e.g., specific passenger ages)
             ]);
 
             // 2. Prepare criteria for PKfareService
             $criteria = [
-                'tripType' => $validatedData['tripType'] ?? null,
+                'tripType' => $validatedData['tripType'] ?? 'Oneway',
                 'origin' => strtoupper($validatedData['origin']), // Ensure IATA codes are uppercase
                 'destination' => strtoupper($validatedData['destination']),
                 'departureDate' => $validatedData['departureDate'],
@@ -62,7 +62,7 @@ class FlightController extends Controller
 
             // 3. Call PKfareService to search for flights
             $flights = $this->pkfareService->searchFlights($criteria);
-            Log::info($flights);
+            
             // 4. Return successful response with flight data
             return response()->json([
                 'message' => 'Flights retrieved successfully.',
