@@ -43,7 +43,7 @@ class FlightController extends Controller
                 'adults' => 'required|integer|min:1',
                 'children' => 'nullable|integer|min:0',
                 'infants' => 'nullable|integer|min:0',
-                'cabinType' => 'nullable|string|in:Economy,Business,First,PremiumEconomy',
+                'cabinType' => 'nullable|string' //in:Economy,Business,First,PremiumEconomy',
                 // Add more validation rules as per PKfare API requirements (e.g., specific passenger ages)
             ]);
 
