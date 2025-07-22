@@ -46,7 +46,7 @@ class FlightController extends Controller
                 'cabinType' => 'nullable|string' //in:Economy,Business,First,PremiumEconomy',
                 // Add more validation rules as per PKfare API requirements (e.g., specific passenger ages)
             ]);
-
+            Log::info($validatedData['cabinType']);
             // 2. Prepare criteria for PKfareService
             $criteria = [
                 'tripType' => $validatedData['tripType'] ?? 'Oneway',
