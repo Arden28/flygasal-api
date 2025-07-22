@@ -35,7 +35,7 @@ class FlightController extends Controller
         try {
             // 1. Validate incoming request data
             $validatedData = $request->validate([
-                'tripType' => 'nullable|string|in:OneWay,RoundTrip,MultiCity', //required
+                'tripType' => 'nullable|string', //required
                 'origin' => 'required|string|size:3', // IATA code, e.g., 'NBO'
                 'destination' => 'required|string|size:3', // IATA code, e.g., 'JFK'
                 'departureDate' => 'required|date_format:Y-m-d|after_or_equal:today', // YYYY-MM-DD

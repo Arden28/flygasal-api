@@ -51,23 +51,25 @@ class UserController extends Controller
             $validatedData = $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users,email',
+                'phone' => 'nullable|string|max:16|unique:users,phone_number',
                 'password' => 'required|string|min:8', // No 'confirmed' needed for admin creation
-                'roles' => 'nullable|array', // Array of role names
-                'roles.*' => 'string|exists:roles,name', // Each role name must exist in the roles table
+                'type' => 'nullable|string', // Role name
             ]);
 
             $user = User::create([
                 'name' => $validatedData['name'],
                 'email' => $validatedData['email'],
+                'phone_number' => $validatedData['phone'],
                 'password' => Hash::make($validatedData['password']),
+                'is_active' => true
             ]);
 
-            // Assign roles if provided
-            if (isset($validatedData['roles'])) {
-                $user->syncRoles($validatedData['roles']); // Syncs roles, detaching any not in the array
+            // Assign role if provided
+            if (isset($validatedData['type'])) {
+                $user->syncRoles($validatedData['type']); // Syncs role, detaching any not in the array
             } else {
-                // Assign default customer role if no roles are specified
-                $customerRole = Role::where('name', 'customer')->first();
+                // Assign default customer role if no role are specified
+                $customerRole = Role::where('name', 'user')->first();
                 if ($customerRole) {
                     $user->assignRole($customerRole);
                 }

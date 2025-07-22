@@ -13,11 +13,13 @@ return new class extends Migration
     {
         Schema::create('airports', function (Blueprint $table) {
             $table->id(); // Auto-incrementing ID
-            $table->string('iata_code', 3)->unique(); // IATA code (e.g., "JFK", "NBO") - unique identifier
+            $table->integer('airport_id')->unique();
+            $table->string('iata_code', 4)->unique(); // IATA code (e.g., "JFK", "NBO") - unique identifier
+            $table->string('icao_code', 4); // ICAO code (e.g., "HKJK", "LFPG") - unique identifier
             $table->string('name'); // Full name of the airport (e.g., "Jomo Kenyatta International Airport")
             $table->string('city'); // City where the airport is located
-            $table->string('country'); // Country where the airport is located
-            $table->string('country_code', 2); // ISO 2-letter country code
+            $table->string('country')->nullable(); // Country where the airport is located
+            $table->string('country_code', 2)->nullable(); // ISO 2-letter country code
             $table->decimal('latitude', 10, 7)->nullable(); // Latitude coordinate
             $table->decimal('longitude', 10, 7)->nullable(); // Longitude coordinate
             $table->string('timezone')->nullable(); // Airport timezone (e.g., "Africa/Nairobi")

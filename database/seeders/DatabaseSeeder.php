@@ -21,9 +21,15 @@ class DatabaseSeeder extends Seeder
         Role::create(['name' => 'admin', 'guard_name' => 'api']);
         Role::create(['name' => 'agent', 'guard_name' => 'api']);
         Role::create(['name' => 'user', 'guard_name' => 'api']);
-        Permission::create(['name' => 'manage_roles', 'guard_name' => 'api']);
-        Permission::create(['name' => 'manage_permissions', 'guard_name' => 'api']);
-        Permission::create(['name' => 'impersonate', 'guard_name' => 'api']);
+        $permissions = [
+            Permission::create(['name' => 'manage_roles', 'guard_name' => 'api']),
+            Permission::create(['name' => 'manage_permissions', 'guard_name' => 'api']),
+            Permission::create(['name' => 'manage-users', 'guard_name' => 'api']),
+            Permission::create(['name' => 'impersonate', 'guard_name' => 'api']),
+        ];
+
+        $adminRole = Role::where('name', 'admin')->where('guard_name', 'api')->first();
+        $adminRole->syncPermissions($permissions);
 
         // Create User
         $user = User::create([
@@ -40,13 +46,9 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // Assign default role
-        $user->assignRole(config('guardian.roles.default_role', 'user'));
+        $user->assignRole('admin');
 
-        // \App\Models\User::factory(10)->create();
-
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        
+        // $this->call(AirportSeeder::class);  ← You'd add this if you want it to run every time
     }
 }

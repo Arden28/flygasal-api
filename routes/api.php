@@ -8,9 +8,11 @@ use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\FlightController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Models\Flights\Airport;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -39,6 +41,17 @@ Route::get('/proxy/countries', function () {
     $response = Http::get('https://apicountries.com/countries');
     return $response->json();
 });
+
+// Airport Routes
+Route::get('/proxy/airports', function (Request $request) {
+
+    return Airport::where('name', 'LIKE', "%{$request->q}%")
+        ->orWhere('iata', 'LIKE', "%{$request->q}%")
+        ->orWhere('city', 'LIKE', "%{$request->q}%")
+        ->limit(10)
+        ->get();
+});
+
 
 // Authenticated routes (requires Sanctum token)
 // Routes within this group will require a valid API token for access.

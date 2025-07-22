@@ -225,4 +225,18 @@ return [
     'pkfare_api_key' => env('PKFARE_PARTNER_ID'),
     'pkfare_api_secret' => env('PKFARE_PARTNER_KEY'),
     'pkfare_api_signature' => env('PKFARE_API_SIGNATURE'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Aviation Stack API Configuration
+    |--------------------------------------------------------------------------
+    |
+    | These values are used to connect to the Aviation Stack flight API.
+    | Ensure you have these set in your .env file.
+    |
+    */
+    'aviationstack' => [
+        'key' => env('AVIATIONSTACK_KEY'),
+    ],
 ];
+
