@@ -62,7 +62,7 @@ class FlightController extends Controller
 
             // 3. Call PKfareService to search for flights
             $flights = $this->pkfareService->searchFlights($criteria);
-
+            Log::info($flights);
             // 4. Return successful response with flight data
             return response()->json([
                 'message' => 'Flights retrieved successfully.',
