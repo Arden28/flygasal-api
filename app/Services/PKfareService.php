@@ -197,13 +197,13 @@ class PKfareService
         ];
 
         // Loop through journeys dynamically: journey_0, journey_1, ...
-        if (isset($criteria['journeys']) && is_array($criteria['journeys'])) {
-            foreach ($criteria['journeys'] as $index => $segments) {
-                $payload['pricing']['journeys']["journey_{$index}"] = $segments;
-            }
-        } else {
-            throw new InvalidArgumentException("Journeys must be provided in the criteria array.");
-        }
+        // if (isset($criteria['journeys']) && is_array($criteria['journeys'])) {
+        //     foreach ($criteria['journeys'] as $index => $segments) {
+        //         $payload['pricing']['journeys']["journey_{$index}"] = $segments;
+        //     }
+        // } else {
+        //     throw new InvalidArgumentException("Journeys must be provided in the criteria array.");
+        // }
 
         return $this->post('/json/precisePricing_V10', $payload);
     }
