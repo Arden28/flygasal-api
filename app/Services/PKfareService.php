@@ -192,7 +192,7 @@ class PKfareService
                 'infants' => $criteria['infants'] ?? 0,
                 'solutionId' => $criteria['solutionId'] ?? '',
                 'cabin' => $criteria['cabinType'] ?? '',
-                'tag' => $criteria['tag'] ?? '',
+                'tag' => $criteria['tag'] ?? 'direct pricing',
             ],
         ];
 
