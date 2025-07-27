@@ -118,7 +118,7 @@ class FlightController extends Controller
                 'children' => $validatedData['children'] ?? 0,
                 'infants' => $validatedData['infants'] ?? 0,
                 'cabin' => $validatedData['cabinType'] ?? 'Economy',
-                'tag' => $validatedData['tag'] ?? 'SAVER'
+                'tag' => $validatedData['tag'] ?? ''
             ];
 
             // 3. Call PKfareService to precise pricing
