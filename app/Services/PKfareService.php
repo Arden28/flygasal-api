@@ -200,7 +200,7 @@ class PKfareService
         if (isset($criteria['journeys']) && is_array($criteria['journeys'])) {
             foreach ($criteria['journeys'] as $index => $segments) {
 
-                Log::info("Journey: $segments");
+                // Log::info("Journey: $segments");
 
                 $payload['pricing']['journeys']["journey_{$index}"] = json_encode($segments);
             }
