@@ -101,7 +101,7 @@ class FlightController extends Controller
             $validatedData = $request->validate([
                 'solutionId' => 'required|string',
                 'solutionKey' => 'nullable|string',
-                'journeys' => 'nullable',
+                'journeys' => 'nullable|string',
                 'adults' => 'required|integer|min:1',
                 'children' => 'nullable|integer|min:0',
                 'infants' => 'nullable|integer|min:0',
