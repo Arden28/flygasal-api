@@ -109,9 +109,7 @@ class FlightController extends Controller
                 'tag' => 'nullable|string',
             ]);
 
-            $journeys = json_decode($validatedData['journeys'], true);
-
-            // Log::info("Journey: $journeys");
+            $journeys = json_decode($request->input('journeys'), true);
 
             // 2. Prepare criteria for PKfareService
             $criteria = [
