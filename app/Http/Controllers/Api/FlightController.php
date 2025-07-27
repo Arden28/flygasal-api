@@ -46,7 +46,7 @@ class FlightController extends Controller
                 'cabinType' => 'nullable|string' //in:Economy,Business,First,PremiumEconomy',
                 // Add more validation rules as per PKfare API requirements (e.g., specific passenger ages)
             ]);
-            Log::info($validatedData['cabinType']);
+            // Log::info($validatedData['cabinType']);
             // 2. Prepare criteria for PKfareService
             $criteria = [
                 'tripType' => $validatedData['tripType'] ?? 'Oneway',
@@ -57,12 +57,12 @@ class FlightController extends Controller
                 'adults' => $validatedData['adults'],
                 'children' => $validatedData['children'] ?? 0,
                 'infants' => $validatedData['infants'] ?? 0,
-                'cabinType' => $validatedData['cabinType'] ?? 'Economy',
+                'cabinClass' => $validatedData['cabinType'] ?? 'Economy',
             ];
 
             // 3. Call PKfareService to search for flights
             $flights = $this->pkfareService->searchFlights($criteria);
-            
+
             // 4. Return successful response with flight data
             return response()->json([
                 'message' => 'Flights retrieved successfully.',
@@ -85,6 +85,64 @@ class FlightController extends Controller
                 'message' => 'Failed to search flights. Please try again later.',
                 'error' => $e->getMessage(), // For debugging, remove or simplify in production
             ], 500); // Internal Server Error
+        }
+    }
+
+    /**
+     * Perform precise pricing for a selected solution from search results.
+     *
+     * @param Request $request The incoming HTTP request containing search parameters.
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function precisePricing(Request $request)
+    {
+        try {
+            // 1. Validate incoming request data
+            $validatedData = $request->validate([
+                'solutionId' => 'required|string',
+                'solutionKey' => 'nullable|string',
+                'journeys' => 'nullable|array',
+                'adults' => 'required|integer|min:1',
+                'children' => 'nullable|integer|min:0',
+                'infants' => 'nullable|integer|min:0',
+                'cabinType' => 'nullable|string',
+                'tag' => 'nullable|string',
+            ]);
+
+            // 2. Prepare criteria for PKfareService
+            $criteria = [
+                'solutionId' => $validatedData['solutionId'],
+                'solutionKey' => $validatedData['solutionKey'],
+                'journeys' => $validatedData['journeys'] ?? [],
+                'adults' => $validatedData['adults'],
+                'children' => $validatedData['children'] ?? 0,
+                'infants' => $validatedData['infants'] ?? 0,
+                'cabin' => $validatedData['cabinType'] ?? 'Economy',
+                'tag' => $validatedData['tag'] ?? 'SAVER'
+            ];
+
+            // 3. Call PKfareService to precise pricing
+            $precisePricing = $this->pkfareService->getPrecisePricing($criteria);
+
+            // 4. Return successful response with flight data
+            return response()->json([
+                'message' => 'Precise pricing retrieved successfully.',
+                'errorMsg' => $precisePricing['errorMsg'] ?? null,
+                'errorCode' => $precisePricing['errorCode'] ?? null,
+                'data' => $precisePricing['data'] ?? $precisePricing,
+            ]);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation error',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (Exception $e) {
+            Log::error('Precise pricing failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'message' => 'Failed to get precise pricing.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
 

@@ -78,6 +78,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Flight Search Routes
     // Requires authentication to search for flights.
     Route::post('/flights/search', [FlightController::class, 'search']);
+    Route::post('/flights/precise-pricing', [FlightController::class, 'precisePricing']);
 
     // Booking Management Routes
     // Resource routes for bookings: index, store, show, destroy (using 'cancel' method)

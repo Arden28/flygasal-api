@@ -5,6 +5,7 @@ namespace App\Services;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Log; // For logging API errors
+use InvalidArgumentException;
 
 // This service class encapsulates all interactions with the PKfare API.
 // It handles API requests, error handling, and response parsing.
@@ -168,6 +169,62 @@ class PKfareService
 
         return $this->post('/json/shoppingV8', $payload);
     }
+
+    /**
+     * Retrieves precise pricing for a selected flight using dynamic criteria.
+     *
+     * @param array $criteria An associative array with journeys, passengers, solutionId, etc.
+     * @return array The precise pricing response
+     * @throws \Exception
+     */
+    public function getPrecisePricing(array $criteria): array
+    {
+        // Build authentication
+        $payload = [
+            'authentication' => [
+                'partnerId' => $this->apiKey,
+                'sign' => md5($this->apiKey . $this->apiSecret),
+            ],
+            'pricing' => [
+                'journeys' => [],
+                'adults' => $criteria['adults'] ?? 1,
+                'children' => $criteria['children'] ?? 0,
+                'infants' => $criteria['infants'] ?? 0,
+                'solutionId' => $criteria['solutionId'] ?? '',
+                'cabin' => $criteria['cabinType'] ?? '',
+                'tag' => $criteria['tag'] ?? '',
+            ],
+        ];
+
+        // Loop through journeys dynamically: journey_0, journey_1, ...
+        if (isset($criteria['journeys']) && is_array($criteria['journeys'])) {
+            foreach ($criteria['journeys'] as $index => $segments) {
+                $payload['pricing']['journeys']["journey_{$index}"] = $segments;
+            }
+        } else {
+            throw new InvalidArgumentException("Journeys must be provided in the criteria array.");
+        }
+
+        return $this->post('/json/precisePricing_V10', $payload);
+    }
+
+    /**
+     * Extract solutionKey and journeys (flight IDs) from selected solution.
+     */
+    public function extractPricingInfoFromSolutions(array $solutions, string $solutionKey): array
+    {
+        foreach ($solutions as $solution) {
+            if ($solution['solutionKey'] === $solutionKey) {
+                return [
+                    'solutionKey' => $solutionKey,
+                    'journeys' => $solution['journeys'],
+                ];
+            }
+        }
+
+        throw new \Exception("Solution with key {$solutionKey} not found.");
+    }
+
 
     /**
      * Creates a flight booking.
