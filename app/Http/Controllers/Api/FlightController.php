@@ -110,7 +110,8 @@ class FlightController extends Controller
             ]);
 
             $journeys = json_decode($request->input('journeys'), true);
-            Log::info("Journeys: ". $journeys);
+            Log::debug('Decoded journeys:', $journeys);
+
 
             // 2. Prepare criteria for PKfareService
             $criteria = [
