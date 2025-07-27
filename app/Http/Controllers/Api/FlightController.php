@@ -101,7 +101,7 @@ class FlightController extends Controller
             $validatedData = $request->validate([
                 'solutionId' => 'required|string',
                 'solutionKey' => 'nullable|string',
-                'journeys' => 'nullable|array',
+                'journeys' => 'nullable|string',
                 'adults' => 'required|integer|min:1',
                 'children' => 'nullable|integer|min:0',
                 'infants' => 'nullable|integer|min:0',
@@ -109,11 +109,15 @@ class FlightController extends Controller
                 'tag' => 'nullable|string',
             ]);
 
+            $journeys = json_decode($validatedData['journeys'], true);
+
+            Log::info("Journey: $journeys");
+
             // 2. Prepare criteria for PKfareService
             $criteria = [
                 'solutionId' => $validatedData['solutionId'],
                 'solutionKey' => $validatedData['solutionKey'],
-                'journeys' => $validatedData['journeys'] ?? [],
+                'journeys' => $journeys ?? [],
                 'adults' => $validatedData['adults'],
                 'children' => $validatedData['children'] ?? 0,
                 'infants' => $validatedData['infants'] ?? 0,
