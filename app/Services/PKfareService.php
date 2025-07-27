@@ -199,6 +199,9 @@ class PKfareService
         // Loop through journeys dynamically: journey_0, journey_1, ...
         if (isset($criteria['journeys']) && is_array($criteria['journeys'])) {
             foreach ($criteria['journeys'] as $index => $segments) {
+
+                Log::info("Journey: $segments");
+
                 $payload['pricing']['journeys']["journey_{$index}"] = json_encode($segments);
             }
         } else {
