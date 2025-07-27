@@ -96,12 +96,13 @@ class FlightController extends Controller
      */
     public function precisePricing(Request $request)
     {
+
         try {
             // 1. Validate incoming request data
             $validatedData = $request->validate([
                 'solutionId' => 'required|string',
                 'solutionKey' => 'nullable|string',
-                'journeys' => 'nullable',
+                'journeys' => 'nullable|array', // <-- expect an array directly
                 'adults' => 'required|integer|min:1',
                 'children' => 'nullable|integer|min:0',
                 'infants' => 'nullable|integer|min:0',
@@ -109,21 +110,19 @@ class FlightController extends Controller
                 'tag' => 'nullable|string',
             ]);
 
-            $journeys = json_decode($request->input('journeys'), true);
-            Log::debug('Decoded journeys:', $journeys);
-
-
             // 2. Prepare criteria for PKfareService
             $criteria = [
                 'solutionId' => $validatedData['solutionId'],
-                'solutionKey' => $validatedData['solutionKey'],
-                'journeys' => $journeys ?? [],
+                'solutionKey' => $validatedData['solutionKey'] ?? null,
+                'journeys' => $validatedData['journeys'] ?? [],
                 'adults' => $validatedData['adults'],
                 'children' => $validatedData['children'] ?? 0,
                 'infants' => $validatedData['infants'] ?? 0,
                 'cabin' => $validatedData['cabinType'] ?? 'Economy',
                 'tag' => $validatedData['tag'] ?? ''
             ];
+
+            Log::debug('Received journeys:', $criteria['journeys']);
 
             // 3. Call PKfareService to precise pricing
             $precisePricing = $this->pkfareService->getPrecisePricing($criteria);
@@ -148,6 +147,7 @@ class FlightController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+
     }
 
     // TODO: Add methods for retrieving specific flight details if PKfare offers such an endpoint
