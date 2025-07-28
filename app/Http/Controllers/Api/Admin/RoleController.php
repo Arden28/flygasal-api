@@ -43,7 +43,7 @@ class RoleController extends Controller
             return [
                 'id' => $role->id,
                 'name' => $role->name,
-                'description' => $role->description,
+                'description' => $role->description ?? "$role->name role",
                 'status' => $role->status ?? 'Active', // optional fallback
                 'permissions' => $permissionNames,
             ];
