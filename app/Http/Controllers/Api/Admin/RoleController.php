@@ -30,21 +30,25 @@ class RoleController extends Controller
      */
     public function index()
     {
-        // Load roles with permissions
-        $roles = Role::with('permissions')->latest()->get();
+        // Load roles
+        $roles = Role::latest()->get();
 
-        // Transform roles to desired structure
+        // Manually attach permissions
         $formattedRoles = $roles->map(function ($role) {
+            $permissionNames = Permission::join('role_has_permissions', 'permissions.id', '=', 'role_has_permissions.permission_id')
+                ->where('role_has_permissions.role_id', $role->id)
+                ->pluck('permissions.name')
+                ->toArray();
+
             return [
                 'id' => $role->id,
                 'name' => $role->name,
                 'description' => $role->description,
-                'status' => $role->status,
-                'permissions' => $role->permissions->pluck('name')->toArray(),
+                'status' => $role->status ?? 'active', // optional fallback
+                'permissions' => $permissionNames,
             ];
         });
 
-        // Return transformed roles
         return response()->json([
             'message' => 'Roles retrieved successfully.',
             'data' => $formattedRoles,
