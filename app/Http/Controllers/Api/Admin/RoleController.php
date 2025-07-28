@@ -44,7 +44,7 @@ class RoleController extends Controller
                 'id' => $role->id,
                 'name' => $role->name,
                 'description' => $role->description,
-                'status' => $role->status ?? 'active', // optional fallback
+                'status' => $role->status ?? 'Active', // optional fallback
                 'permissions' => $permissionNames,
             ];
         });
