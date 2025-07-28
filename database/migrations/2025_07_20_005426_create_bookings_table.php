@@ -22,6 +22,7 @@ return new class extends Migration
             $table->json('passenger_details'); // JSON blob to store passenger names, types, contact info
             $table->string('contact_email')->nullable(); // Contact email for the booking
             $table->string('contact_phone')->nullable(); // Contact phone number for the booking
+            $table->string('pnr')->nullable(); // Contact phone number for the booking
             $table->timestamp('booking_date')->useCurrent(); // Date and time the booking was initiated
             $table->timestamps(); // created_at and updated_at columns
         });
