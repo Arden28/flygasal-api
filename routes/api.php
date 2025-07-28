@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\FlightController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\SettingsController;
 use App\Models\Flights\Airport;
 use App\Models\Settings\Setting;
 use App\Models\User;
@@ -101,148 +102,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('users', UserController::class); // Using alias for clarity
         Route::post('/users/{id}/approve', [UserController::class, 'approve']);
 
-        // General Settings
-        Route::get('/settings', function () {
-            $settings = Setting::find(1);
+        // Settings
+        Route::get('/settings', [SettingsController::class, 'getGeneralSettings']);
+        Route::post('/settings', [SettingsController::class, 'updateGeneralSettings']);
 
-            if (!$settings) {
-            return response()->json(['error' => 'Settings not found.'], 404);
-            }
+        Route::get('/email-settings', [SettingsController::class, 'getEmailSettings']);
+        Route::post('/email-settings', [SettingsController::class, 'updateEmailSettings']);
 
-            return response()->json([
-            'site_name' => $settings->site_name,
-            'default_currency' => $settings->default_currency,
-            'timezone' => $settings->timezone,
-            'language' => $settings->language,
-            'login_attemps' => $settings->login_attemps,
-            'email_notification' => $settings->email_notification,
-            'sms_notification' => $settings->sms_notification,
-            'booking_confirmation_email' => $settings->booking_confirmation_email,
-            'booking_confirmation_sms' => $settings->booking_confirmation_sms,
-            ]);
-        });
-
-        // Endpoint to get email-related settings from the .env file
-        Route::get('/email-settings', function () {
-            $keys = [
-            'MAIL_MAILER',
-            'MAIL_HOST',
-            'MAIL_PORT',
-            'MAIL_USERNAME',
-            'MAIL_PASSWORD',
-            'MAIL_ENCRYPTION',
-            'MAIL_FROM_ADDRESS',
-            'MAIL_FROM_NAME',
-            ];
-
-            $settings = [];
-            foreach ($keys as $key) {
-            $settings[$key] = env($key);
-            }
-
-            return response()->json($settings);
-        });
-
-        // Endpoint to update email-related settings in the .env file
-        Route::post('/email-settings', function (Request $request) {
-            // Validate the incoming request data for required email settings
-            $validated = $request->validate([
-            'MAIL_MAILER' => 'required|string',
-            'MAIL_HOST' => 'required|string',
-            'MAIL_PORT' => 'required|numeric',
-            'MAIL_USERNAME' => 'required|string',
-            'MAIL_PASSWORD' => 'required|string',
-            'MAIL_ENCRYPTION' => 'nullable|string',
-            'MAIL_FROM_ADDRESS' => 'required|email',
-            'MAIL_FROM_NAME' => 'required|string',
-            ]);
-
-            // Get the path to the .env file
-            $envPath = base_path('.env');
-            // Read the current contents of the .env file (if it exists)
-            $envContent = file_exists($envPath) ? file_get_contents($envPath) : '';
-
-            // For each validated key, update its value or add it if not present
-            foreach ($validated as $key => $value) {
-            // Prepare the pattern to match the line (handles empty or existing values)
-            $pattern = "/^{$key}=.*$/m";
-            // Prepare the new line with the value (always quoted)
-            $line = "{$key}=\"{$value}\"";
-            if (preg_match($pattern, $envContent)) {
-                // If the key exists, replace the line
-                $envContent = preg_replace($pattern, $line, $envContent);
-            } else {
-                // If the key does not exist, append it to the end
-                $envContent .= (substr($envContent, -1) === "\n" ? '' : "\n") . $line . "\n";
-            }
-            }
-
-            // Write the updated content back to the .env file
-            file_put_contents($envPath, $envContent);
-
-            // Optionally reload Laravel config cache to apply new settings immediately
-            Artisan::call('config:clear');
-            Artisan::call('config:cache');
-
-            // Return a success response
-            return response()->json(['message' => 'Email settings updated successfully.']);
-        });
-
-            // Endpoint to get PKFare-related settings from the .env file
-            Route::get('/pkfare-settings', function () {
-                $keys = [
-                'PKFARE_API_BASE_URL',
-                'PKFARE_PARTNER_ID',
-                'PKFARE_PARTNER_KEY',
-                ];
-
-                $settings = [];
-                foreach ($keys as $key) {
-                $settings[$key] = env($key);
-                }
-
-                return response()->json($settings);
-            });
-
-            // Endpoint to update PKFare-related settings in the .env file
-            Route::post('/pkfare-settings', function (Request $request) {
-                // Validate the incoming request data for required PKFare settings
-                $validated = $request->validate([
-                'PKFARE_API_BASE_URL' => 'required|string',
-                'PKFARE_PARTNER_ID' => 'required|string',
-                'PKFARE_PARTNER_KEY' => 'required|string',
-                ]);
-
-                // Get the path to the .env file
-                $envPath = base_path('.env');
-                // Read the current contents of the .env file (if it exists)
-                $envContent = file_exists($envPath) ? file_get_contents($envPath) : '';
-
-                // For each validated key, update its value or add it if not present
-                foreach ($validated as $key => $value) {
-                // Prepare the pattern to match the line (handles empty or existing values)
-                $pattern = "/^{$key}=.*$/m";
-                // Prepare the new line with the value (always quoted)
-                $line = "{$key}=\"{$value}\"";
-                if (preg_match($pattern, $envContent)) {
-                    // If the key exists, replace the line
-                    $envContent = preg_replace($pattern, $line, $envContent);
-                } else {
-                    // If the key does not exist, append it to the end
-                    $envContent .= (substr($envContent, -1) === "\n" ? '' : "\n") . $line . "\n";
-                }
-                }
-
-                // Write the updated content back to the .env file
-                file_put_contents($envPath, $envContent);
-
-                // Optionally reload Laravel config cache to apply new settings immediately
-                Artisan::call('config:clear');
-                Artisan::call('config:cache');
-
-                // Return a success response
-                return response()->json(['message' => 'PKFare settings updated successfully.']);
-            });
+        Route::get('/pkfare-settings', [SettingsController::class, 'getPkfareSettings']);
+        Route::post('/pkfare-settings', [SettingsController::class, 'updatePkfareSettings']);
 
         // Role & Permission Management
         Route::apiResource('roles', RoleController::class);
