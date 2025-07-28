@@ -122,6 +122,27 @@ Route::middleware('auth:sanctum')->group(function () {
             ]);
         });
 
+        // Endpoint to get email-related settings from the .env file
+        Route::get('/email-settings', function () {
+            $keys = [
+            'MAIL_MAILER',
+            'MAIL_HOST',
+            'MAIL_PORT',
+            'MAIL_USERNAME',
+            'MAIL_PASSWORD',
+            'MAIL_ENCRYPTION',
+            'MAIL_FROM_ADDRESS',
+            'MAIL_FROM_NAME',
+            ];
+
+            $settings = [];
+            foreach ($keys as $key) {
+            $settings[$key] = env($key);
+            }
+
+            return response()->json($settings);
+        });
+
         // Endpoint to update email-related settings in the .env file
         Route::post('/email-settings', function (Request $request) {
             // Validate the incoming request data for required email settings
