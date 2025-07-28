@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
+use App\Models\Settings\Setting;
+use App\Models\Settings\Settings;
 use App\Models\User;
 use Arden28\Guardian\Models\TwoFactorSetting;
 use Illuminate\Database\Seeder;
@@ -18,6 +20,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Create Setting
+        $setting = Setting::create([
+            'site_name' => 'FlyGasal'
+        ]);
+        $setting->save();
+
         Role::create(['name' => 'admin', 'guard_name' => 'api']);
         Role::create(['name' => 'agent', 'guard_name' => 'api']);
         Role::create(['name' => 'user', 'guard_name' => 'api']);
@@ -48,7 +56,7 @@ class DatabaseSeeder extends Seeder
         // Assign default role
         $user->assignRole('admin');
 
-        
+
         // $this->call(AirportSeeder::class);  ← You'd add this if you want it to run every time
     }
 }
