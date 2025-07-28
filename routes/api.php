@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\FlightController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Models\Flights\Airport;
+use App\Models\Settings\Setting;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -98,6 +99,27 @@ Route::middleware('auth:sanctum')->group(function () {
         // User Management (Admin specific)
         Route::apiResource('users', UserController::class); // Using alias for clarity
         Route::post('/users/{id}/approve', [UserController::class, 'approve']);
+
+        // General Settings
+        Route::get('/settings', function () {
+            $settings = Setting::find(1);
+
+            if (!$settings) {
+            return response()->json(['error' => 'Settings not found.'], 404);
+            }
+
+            return response()->json([
+            'site_name' => $settings->site_name,
+            'default_currency' => $settings->default_currency,
+            'timezone' => $settings->timezone,
+            'language' => $settings->language,
+            'login_attemps' => $settings->login_attemps,
+            'email_notification' => $settings->email_notification,
+            'sms_notification' => $settings->sms_notification,
+            'booking_confirmation_email' => $settings->booking_confirmation_email,
+            'booking_confirmation_sms' => $settings->booking_confirmation_sms,
+            ]);
+        });
 
         // Role & Permission Management
         Route::apiResource('roles', RoleController::class);
