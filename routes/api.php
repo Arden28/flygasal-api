@@ -12,6 +12,7 @@ use App\Models\Flights\Airport;
 use App\Models\Settings\Setting;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
@@ -119,6 +120,51 @@ Route::middleware('auth:sanctum')->group(function () {
             'booking_confirmation_email' => $settings->booking_confirmation_email,
             'booking_confirmation_sms' => $settings->booking_confirmation_sms,
             ]);
+        });
+
+        // Endpoint to update email-related settings in the .env file
+        Route::post('/email-settings', function (Request $request) {
+            // Validate the incoming request data for required email settings
+            $validated = $request->validate([
+            'MAIL_MAILER' => 'required|string',
+            'MAIL_HOST' => 'required|string',
+            'MAIL_PORT' => 'required|numeric',
+            'MAIL_USERNAME' => 'required|string',
+            'MAIL_PASSWORD' => 'required|string',
+            'MAIL_ENCRYPTION' => 'nullable|string',
+            'MAIL_FROM_ADDRESS' => 'required|email',
+            'MAIL_FROM_NAME' => 'required|string',
+            ]);
+
+            // Get the path to the .env file
+            $envPath = base_path('.env');
+            // Read the current contents of the .env file (if it exists)
+            $envContent = file_exists($envPath) ? file_get_contents($envPath) : '';
+
+            // For each validated key, update its value or add it if not present
+            foreach ($validated as $key => $value) {
+            // Prepare the pattern to match the line (handles empty or existing values)
+            $pattern = "/^{$key}=.*$/m";
+            // Prepare the new line with the value (always quoted)
+            $line = "{$key}=\"{$value}\"";
+            if (preg_match($pattern, $envContent)) {
+                // If the key exists, replace the line
+                $envContent = preg_replace($pattern, $line, $envContent);
+            } else {
+                // If the key does not exist, append it to the end
+                $envContent .= (substr($envContent, -1) === "\n" ? '' : "\n") . $line . "\n";
+            }
+            }
+
+            // Write the updated content back to the .env file
+            file_put_contents($envPath, $envContent);
+
+            // Optionally reload Laravel config cache to apply new settings immediately
+            Artisan::call('config:clear');
+            Artisan::call('config:cache');
+
+            // Return a success response
+            return response()->json(['message' => 'Email settings updated successfully.']);
         });
 
         // Role & Permission Management
