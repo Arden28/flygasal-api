@@ -30,13 +30,27 @@ class RoleController extends Controller
      */
     public function index()
     {
-        // Eager load permissions for each role
-        $roles = Role::with('permissions')->latest()->paginate(10);
+        // Load roles with permissions
+        $roles = Role::with('permissions')->latest()->get();
+
+        // Transform roles to desired structure
+        $formattedRoles = $roles->map(function ($role) {
+            return [
+                'id' => $role->id,
+                'name' => $role->name,
+                'description' => $role->description,
+                'status' => $role->status,
+                'permissions' => $role->permissions->pluck('name')->toArray(),
+            ];
+        });
+
+        // Return transformed roles
         return response()->json([
             'message' => 'Roles retrieved successfully.',
-            'data' => $roles,
+            'data' => $formattedRoles,
         ]);
     }
+
 
     /**
      * Store a newly created role in storage.
