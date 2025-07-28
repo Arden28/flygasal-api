@@ -188,6 +188,62 @@ Route::middleware('auth:sanctum')->group(function () {
             return response()->json(['message' => 'Email settings updated successfully.']);
         });
 
+            // Endpoint to get PKFare-related settings from the .env file
+            Route::get('/pkfare-settings', function () {
+                $keys = [
+                'PKFARE_API_BASE_URL',
+                'PKFARE_PARTNER_ID',
+                'PKFARE_PARTNER_KEY',
+                ];
+
+                $settings = [];
+                foreach ($keys as $key) {
+                $settings[$key] = env($key);
+                }
+
+                return response()->json($settings);
+            });
+
+            // Endpoint to update PKFare-related settings in the .env file
+            Route::post('/pkfare-settings', function (Request $request) {
+                // Validate the incoming request data for required PKFare settings
+                $validated = $request->validate([
+                'PKFARE_API_BASE_URL' => 'required|string',
+                'PKFARE_PARTNER_ID' => 'required|string',
+                'PKFARE_PARTNER_KEY' => 'required|string',
+                ]);
+
+                // Get the path to the .env file
+                $envPath = base_path('.env');
+                // Read the current contents of the .env file (if it exists)
+                $envContent = file_exists($envPath) ? file_get_contents($envPath) : '';
+
+                // For each validated key, update its value or add it if not present
+                foreach ($validated as $key => $value) {
+                // Prepare the pattern to match the line (handles empty or existing values)
+                $pattern = "/^{$key}=.*$/m";
+                // Prepare the new line with the value (always quoted)
+                $line = "{$key}=\"{$value}\"";
+                if (preg_match($pattern, $envContent)) {
+                    // If the key exists, replace the line
+                    $envContent = preg_replace($pattern, $line, $envContent);
+                } else {
+                    // If the key does not exist, append it to the end
+                    $envContent .= (substr($envContent, -1) === "\n" ? '' : "\n") . $line . "\n";
+                }
+                }
+
+                // Write the updated content back to the .env file
+                file_put_contents($envPath, $envContent);
+
+                // Optionally reload Laravel config cache to apply new settings immediately
+                Artisan::call('config:clear');
+                Artisan::call('config:cache');
+
+                // Return a success response
+                return response()->json(['message' => 'PKFare settings updated successfully.']);
+            });
+
         // Role & Permission Management
         Route::apiResource('roles', RoleController::class);
         Route::get('permissions', [RoleController::class, 'permissions']); // Custom route to get all permissions
