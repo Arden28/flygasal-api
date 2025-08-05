@@ -93,6 +93,7 @@ class BookingController extends Controller
             // 2. Prepare booking details for PKfareService
             $pkfareBookingDetails = [
                 'selectedFlight' => $validatedData['selectedFlight'],
+                'solutionId' => $validatedData['solutionId'],
                 'passengers' => $validatedData['passengers'],
                 'contactInfo' => [
                     'email' => $validatedData['contactEmail'],
