@@ -44,7 +44,7 @@ class BookingController extends Controller
     {
         // For customers, show only their own bookings.
         // For admins/agents, potentially show all or filtered bookings based on permissions.
-        if ($request->user()->hasRole('customer')) {
+        if ($request->user()->hasRole('agent')) {
             $bookings = $request->user()->bookings()->with('transactions')->latest()->paginate(10);
         } else {
             // Admins/Agents can view all bookings
@@ -87,7 +87,6 @@ class BookingController extends Controller
                 'contactPhone' => 'required|string|max:20',
                 'totalPrice' => 'required|numeric|min:0',
                 'currency' => 'required|string|size:3',
-                // TODO: Add payment token/method if integrating a payment gateway directly here
             ]);
 
             // 2. Prepare booking details for PKfareService
