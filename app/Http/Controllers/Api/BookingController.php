@@ -84,6 +84,7 @@ class BookingController extends Controller
                 'passengers.*.gender' => 'required|string|in:Male,Female',
                 'passengers.*.passportNumber' => 'nullable|string|max:255',
                 'passengers.*.passportExpiry' => 'nullable|date_format:Y-m-d|after:today',
+                'contactName' => 'required|string|max:155',
                 'contactEmail' => 'required|email|max:255',
                 'contactPhone' => 'required|string|max:20',
                 'totalPrice' => 'required|numeric|min:0',
