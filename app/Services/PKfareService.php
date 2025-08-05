@@ -264,7 +264,7 @@ class PKfareService
                 }, $bookingDetails['passengers'], array_keys($bookingDetails['passengers'])),
 
                 'solution' => [
-                    'solutionId' => $bookingDetails['selectedFlight']['solutionId'],
+                    'solutionId' => $bookingDetails['solutionId'],
                     'adtFare' => $bookingDetails['selectedFlight']['adtFare'] ?? null,
                     'adtTax' => $bookingDetails['selectedFlight']['adtTax'] ?? null,
                     'chdFare' => $bookingDetails['selectedFlight']['chdFare'] ?? null,

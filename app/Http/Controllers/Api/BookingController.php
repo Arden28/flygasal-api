@@ -74,6 +74,7 @@ class BookingController extends Controller
             $validatedData = $request->validate([
                 'selectedFlight' => 'required|array', // The flight object returned from PKfare search
                 'selectedFlight.fareSourceCode' => 'nullable|string', // A critical identifier for PKfare
+                'solutionId' => 'required|string', // A critical identifier for PKfare
                 // ... other necessary flight details from selectedFlight
                 'passengers' => 'required|array|min:1',
                 'passengers.*.firstName' => 'required|string|max:255',
