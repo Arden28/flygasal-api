@@ -217,6 +217,8 @@ class PKfareService
             }
         }
 
+        Log::debug('Received journeys:', $criteria['journeys']);
+
         return $this->post('/json/precisePricing_V10', $payload);
     }
 
@@ -238,6 +240,58 @@ class PKfareService
         throw new \Exception("Solution with key {$solutionKey} not found.");
     }
 
+    /**
+     * Ancillary Pricing
+     *
+     * @param array $bookingDetails An associative array containing all necessary booking information
+     * (e.g., selected flight, passenger details, contact info).
+     * @return array The booking confirmation details
+     * @throws \Exception
+     */
+    public function ancillaryPricing($criteria){
+        // Build payload as expected by PKFare's AncillaryPricing API
+        $payload = [
+            'authentication' => [
+                'partnerId' => $this->apiKey,
+                'sign' => md5($this->apiKey . $this->apiSecret),
+            ],
+            'pricing' => [
+                'adults' => $criteria['adults'] ?? 1,
+                'children' => $criteria['children'] ?? 0,
+                "ancillary" => [
+                    2
+                ],
+                'solutionId' => $criteria['solutionId'] ?? '',
+                'journeys' => [], // Will be populated below
+                // 'infants' => $criteria['infants'] ?? 0,
+                // 'cabin' => $criteria['cabinType'] ?? '',
+                // 'tag' => $criteria['tag'] ?? 'direct pricing',
+            ]
+        ];
+
+        // Transform journey segments (must be associative with keys like journey_0, journey_1)
+        if (!empty($criteria['journeys']) && is_array($criteria['journeys'])) {
+            foreach ($criteria['journeys'] as $index => $segments) {
+                $key = 'journey_' . $index;
+
+                $payload['pricing']['journeys'][$key] = array_map(function ($segment) {
+                    return [
+                        'airline' => $segment['airline'] ?? '',
+                        'flightNum' => $segment['flightNum'] ?? '',
+                        'arrival' => $segment['arrival'] ?? '',
+                        'arrivalDate' => $segment['arrivalDate'] ?? '',
+                        'arrivalTime' => $segment['arrivalTime'] ?? '',
+                        'departure' => $segment['departure'] ?? '',
+                        'departureDate' => $segment['departureDate'] ?? '',
+                        'departureTime' => $segment['departureTime'] ?? '',
+                        'bookingCode' => $segment['bookingCode'] ?? '',
+                    ];
+                }, $segments);
+            }
+        }
+
+        return $this->post('/json/ancillaryPricingV6', $payload);
+    }
 
     /**
      * Creates a flight booking.
@@ -247,6 +301,7 @@ class PKfareService
      * @return array The booking confirmation details
      * @throws \Exception
      */
+
     public function createBooking(array $bookingDetails): array
     {
         // Build payload as expected by PKFare's booking API

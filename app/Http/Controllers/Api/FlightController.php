@@ -122,8 +122,6 @@ class FlightController extends Controller
                 'tag' => $validatedData['tag'] ?? 'direct pricing'
             ];
 
-            Log::debug('Received journeys:', $criteria['journeys']);
-
             // 3. Call PKfareService to precise pricing
             $precisePricing = $this->pkfareService->getPrecisePricing($criteria);
 
@@ -144,6 +142,66 @@ class FlightController extends Controller
             Log::error('Precise pricing failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json([
                 'message' => 'Failed to get precise pricing.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+
+    }
+
+    /**
+     * Through AncillaryPricing API, you can search ancillary products and get product details.
+     *
+     * @param Request $request The incoming HTTP request containing search parameters.
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function ancillaryPricing(Request $request)
+    {
+
+        try {
+            // 1. Validate incoming request data
+            $validatedData = $request->validate([
+                'solutionId' => 'required|string',
+                'solutionKey' => 'nullable|string',
+                'journeys' => 'nullable|array', // <-- expect an array directly
+                'adults' => 'required|integer|min:1',
+                'children' => 'nullable|integer|min:0',
+                'infants' => 'nullable|integer|min:0',
+                'cabinType' => 'nullable|string',
+                'tag' => 'nullable|string',
+            ]);
+
+            // 2. Prepare criteria for PKfareService
+            $criteria = [
+                'solutionId' => $validatedData['solutionId'],
+                'solutionKey' => $validatedData['solutionKey'] ?? null,
+                'journeys' => $validatedData['journeys'] ?? [],
+                'adults' => $validatedData['adults'],
+                'children' => $validatedData['children'] ?? 0,
+                'infants' => $validatedData['infants'] ?? 0,
+                'cabin' => $validatedData['cabinType'] ?? 'Economy',
+                'tag' => $validatedData['tag'] ?? 'direct pricing'
+            ];
+
+            // 3. Call PKfareService to ancillary pricing
+            $precisePricing = $this->pkfareService->ancillaryPricing($criteria);
+
+            // 4. Return successful response with flight data
+            return response()->json([
+                'message' => 'Ancillary pricing retrieved successfully.',
+                'errorMsg' => $precisePricing['errorMsg'] ?? null,
+                'errorCode' => $precisePricing['errorCode'] ?? null,
+                'data' => $precisePricing['data'] ?? $precisePricing,
+            ]);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation error',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (Exception $e) {
+            Log::error('Ancillary pricing failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'message' => 'Failed to get ancillary pricing.',
                 'error' => $e->getMessage(),
             ], 500);
         }
