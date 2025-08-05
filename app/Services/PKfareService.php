@@ -196,25 +196,31 @@ class PKfareService
             ],
         ];
 
-        // Transform journey segments (must be associative with keys like journey_0, journey_1)
-        if (!empty($criteria['journeys']) && is_array($criteria['journeys'])) {
-            foreach ($criteria['journeys'] as $index => $segments) {
-                $key = 'journey_' . $index;
 
-                $payload['pricing']['journeys'][$key] = array_map(function ($segment) {
-                    return [
-                        'airline' => $segment['airline'] ?? '',
-                        'flightNum' => $segment['flightNum'] ?? '',
-                        'arrival' => $segment['arrival'] ?? '',
-                        'arrivalDate' => $segment['arrivalDate'] ?? '',
-                        'arrivalTime' => $segment['arrivalTime'] ?? '',
-                        'departure' => $segment['departure'] ?? '',
-                        'departureDate' => $segment['departureDate'] ?? '',
-                        'departureTime' => $segment['departureTime'] ?? '',
-                        'bookingCode' => $segment['bookingCode'] ?? '',
-                    ];
-                }, $segments);
-            }
+        $journeys = $criteria['journeys'] ?? [];
+
+        if (!empty($journeys) && isset($journeys[0]['flightNum'])) {
+            // Single flat journey, wrap it
+            $journeys = [ $journeys ];
+        }
+
+        // Transform journey segments (must be associative with keys like journey_0, journey_1)
+        foreach ($journeys as $index => $segments) {
+            $key = 'journey_' . $index;
+
+            $payload['pricing']['journeys'][$key] = array_map(function ($segment) {
+                return [
+                    'airline' => $segment['airline'] ?? '',
+                    'flightNum' => $segment['flightNum'] ?? '',
+                    'arrival' => $segment['arrival'] ?? '',
+                    'arrivalDate' => $segment['arrivalDate'] ?? '',
+                    'arrivalTime' => $segment['arrivalTime'] ?? '',
+                    'departure' => $segment['departure'] ?? '',
+                    'departureDate' => $segment['departureDate'] ?? '',
+                    'departureTime' => $segment['departureTime'] ?? '',
+                    'bookingCode' => $segment['bookingCode'] ?? '',
+                ];
+            }, $segments);
         }
 
         Log::debug('Received journeys:', $criteria['journeys']);
@@ -296,7 +302,7 @@ class PKfareService
         }
 
 
-        Log::info('Payload Ancillary', $payload);
+        // Log::info('Payload Ancillary', $payload);
 
         return $this->post('/json/ancillaryPricingV6', $payload);
     }
