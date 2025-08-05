@@ -261,7 +261,7 @@ class PKfareService
                 "ancillary" => [
                     2
                 ],
-                'solutionId' => $criteria['solutionId'] ?? '',
+                'solutionId' => $criteria['solutionId'] ?? null,
                 'journeys' => [], // Will be populated below
                 // 'infants' => $criteria['infants'] ?? 0,
                 // 'cabin' => $criteria['cabinType'] ?? '',
@@ -289,6 +289,8 @@ class PKfareService
                 }, $segments);
             }
         }
+
+        Log::info('Payload Ancillary', $payload);
 
         return $this->post('/json/ancillaryPricingV6', $payload);
     }
