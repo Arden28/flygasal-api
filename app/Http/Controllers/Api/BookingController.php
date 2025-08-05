@@ -96,6 +96,7 @@ class BookingController extends Controller
                 'solutionId' => $validatedData['solutionId'],
                 'passengers' => $validatedData['passengers'],
                 'contactInfo' => [
+                    'name' => $validatedData['contactName'],
                     'email' => $validatedData['contactEmail'],
                     'phone' => $validatedData['contactPhone'],
                 ],
