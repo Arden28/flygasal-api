@@ -83,6 +83,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/flights/search', [FlightController::class, 'search']);
     Route::post('/flights/precise-pricing', [FlightController::class, 'precisePricing']);
 
+    Route::post('/flights/ancillary-pricing', [FlightController::class, 'ancillaryPricing']);
+
     // Booking Management Routes
     // Resource routes for bookings: index, store, show, destroy (using 'cancel' method)
     Route::get('/bookings', [BookingController::class, 'index']);
