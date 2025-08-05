@@ -239,19 +239,58 @@ class PKfareService
      */
     public function createBooking(array $bookingDetails): array
     {
-        // This payload structure is highly dependent on PKfare's booking API.
-        // Example structure:
+        // Build payload as expected by PKFare's booking API
         $payload = [
-            'selectedFlight' => $bookingDetails['selectedFlight'], // This would be the flight data obtained from search
-            'passengers' => $bookingDetails['passengers'], // Array of passenger objects
-            'contactInfo' => $bookingDetails['contactInfo'], // Contact details for the booking
-            // ... other necessary fields like payment info, remarks, etc.
+            'authentication' => [
+                'partnerId' => $this->apiKey,
+                'sign' => md5($this->apiKey . $this->apiSecret),
+            ],
+            'booking' => [
+                'passengers' => array_map(function ($passenger, $index) {
+                    return [
+                        'passengerIndex' => $index + 1,
+                        'birthday' => $passenger['dob'],
+                        'firstName' => $passenger['firstName'],
+                        'lastName' => $passenger['lastName'],
+                        'nationality' => $passenger['nationality'] ?? 'US', // default if missing
+                        'psgType' => $passenger['type'],
+                        'sex' => strtoupper(substr($passenger['gender'], 0, 1)), // 'M' or 'F'
+                        'ffpNumber' => $passenger['ffpNumber'] ?? null,
+                        'ffpAirline' => $passenger['ffpAirline'] ?? null,
+                        'ktn' => $passenger['ktn'] ?? null,
+                        'redress' => $passenger['redress'] ?? null,
+                        'associatedPassengerIndex' => $passenger['associatedPassengerIndex'] ?? null,
+                    ];
+                }, $bookingDetails['passengers'], array_keys($bookingDetails['passengers'])),
+
+                'solution' => [
+                    'solutionId' => $bookingDetails['selectedFlight']['solutionId'],
+                    'adtFare' => $bookingDetails['selectedFlight']['adtFare'] ?? null,
+                    'adtTax' => $bookingDetails['selectedFlight']['adtTax'] ?? null,
+                    'chdFare' => $bookingDetails['selectedFlight']['chdFare'] ?? null,
+                    'chdTax' => $bookingDetails['selectedFlight']['chdTax'] ?? null,
+                    'infFare' => $bookingDetails['selectedFlight']['infFare'] ?? null,
+                    'infTax' => $bookingDetails['selectedFlight']['infTax'] ?? null,
+                    'journeys' => $bookingDetails['selectedFlight']['journeys'] ?? [],
+                ],
+
+                'contact' => [
+                    'name' => $bookingDetails['contactInfo']['name'],
+                    'email' => $bookingDetails['contactInfo']['email'],
+                    'telCode' => $bookingDetails['contactInfo']['telCode'] ?? '+1',
+                    'mobile' => $bookingDetails['contactInfo']['mobile'],
+                    'buyerEmail' => $bookingDetails['contactInfo']['buyerEmail'] ?? null,
+                    'buyerTelCode' => $bookingDetails['contactInfo']['buyerTelCode'] ?? null,
+                    'buyerMobile' => $bookingDetails['contactInfo']['buyerMobile'] ?? null,
+                ],
+
+                'ancillary' => $bookingDetails['ancillary'] ?? [], // Optional baggage/seat selection
+            ]
         ];
 
-        // The actual endpoint for booking might be something like '/air/booking' or '/flights/book'
-        // Consult PKfare documentation for the exact endpoint and request body.
         return $this->post('/json/preciseBooking_V7', $payload);
     }
+
 
     /**
      * Retrieves details of an existing booking.
