@@ -278,7 +278,7 @@ class PKfareService
                     'name' => $bookingDetails['contactInfo']['name'],
                     'email' => $bookingDetails['contactInfo']['email'],
                     'telCode' => $bookingDetails['contactInfo']['telCode'] ?? '+1',
-                    'mobile' => $bookingDetails['contactInfo']['mobile'],
+                    'mobile' => $bookingDetails['contactInfo']['phone'],
                     'buyerEmail' => $bookingDetails['contactInfo']['buyerEmail'] ?? null,
                     'buyerTelCode' => $bookingDetails['contactInfo']['buyerTelCode'] ?? null,
                     'buyerMobile' => $bookingDetails['contactInfo']['buyerMobile'] ?? null,
