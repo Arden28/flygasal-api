@@ -192,7 +192,7 @@ class PKfareService
                 'infants' => $criteria['infants'] ?? 0,
                 'solutionId' => $criteria['solutionId'] ?? '',
                 'cabin' => $criteria['cabinType'] ?? '',
-                'tag' => $criteria['tag'] ?? 'SAVER',
+                'tag' => $criteria['tag'] ?? 'direct pricing',
             ],
         ];
 
@@ -222,6 +222,8 @@ class PKfareService
                 ];
             }, $segments);
         }
+
+        Log::debug('Received journeys:', $payload['pricing']['journeys']);
 
         return $this->post('/json/precisePricing_V10', $payload);
     }
