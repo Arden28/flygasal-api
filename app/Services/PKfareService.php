@@ -250,7 +250,7 @@ class PKfareService
 
         // The actual endpoint for booking might be something like '/air/booking' or '/flights/book'
         // Consult PKfare documentation for the exact endpoint and request body.
-        return $this->post('/air/booking', $payload);
+        return $this->post('/json/preciseBooking_V7', $payload);
     }
 
     /**
