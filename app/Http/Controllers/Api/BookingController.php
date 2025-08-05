@@ -111,7 +111,7 @@ class BookingController extends Controller
             // This is a critical step where the actual booking is made with the airline via PKfare.
             $pkfareResponse = $this->pkfareService->createBooking($pkfareBookingDetails);
 
-            Log::info('PKFare Response: ', $pkfareResponse);
+            // Log::info('PKFare Response: ', $pkfareResponse);
 
             // Check if PKfare booking was successful and retrieve their reference
             $pkfareBookingReference = $pkfareResponse['bookingReference'] ?? null; // Adjust key based on PKfare response

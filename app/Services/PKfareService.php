@@ -186,7 +186,7 @@ class PKfareService
                 'sign' => md5($this->apiKey . $this->apiSecret),
             ],
             'pricing' => [
-                'journeys' => [],
+                'journeys' => [], // Will be populated below
                 'adults' => $criteria['adults'] ?? 1,
                 'children' => $criteria['children'] ?? 0,
                 'infants' => $criteria['infants'] ?? 0,
@@ -196,20 +196,30 @@ class PKfareService
             ],
         ];
 
-        // Loop through journeys dynamically: journey_0, journey_1, ...
-        if (isset($criteria['journeys']) && is_array($criteria['journeys'])) {
+        // Transform journey segments (must be associative with keys like journey_0, journey_1)
+        if (!empty($criteria['journeys']) && is_array($criteria['journeys'])) {
             foreach ($criteria['journeys'] as $index => $segments) {
+                $key = 'journey_' . $index;
 
-                // Log::info("Journey: $segments");
-
-                $payload['pricing']['journeys']["journey_{$index}"] = json_encode($segments);
+                $payload['pricing']['journeys'][$key] = array_map(function ($segment) {
+                    return [
+                        'airline' => $segment['airline'] ?? '',
+                        'flightNum' => $segment['flightNum'] ?? '',
+                        'arrival' => $segment['arrival'] ?? '',
+                        'arrivalDate' => $segment['arrivalDate'] ?? '',
+                        'arrivalTime' => $segment['arrivalTime'] ?? '',
+                        'departure' => $segment['departure'] ?? '',
+                        'departureDate' => $segment['departureDate'] ?? '',
+                        'departureTime' => $segment['departureTime'] ?? '',
+                        'bookingCode' => $segment['bookingCode'] ?? '',
+                    ];
+                }, $segments);
             }
-        } else {
-            throw new InvalidArgumentException("Journeys must be provided in the criteria array.");
         }
 
         return $this->post('/json/precisePricing_V10', $payload);
     }
+
 
     /**
      * Extract solutionKey and journeys (flight IDs) from selected solution.
