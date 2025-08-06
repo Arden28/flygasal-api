@@ -100,7 +100,7 @@ class FlightController extends Controller
         try {
             // 1. Validate incoming request data
             $validatedData = $request->validate([
-                'solutionId' => 'nullable|string',
+                'solutionId' => 'required|string',
                 'solutionKey' => 'nullable|string',
                 'journeys' => 'nullable|array', // <-- expect an array directly
                 'adults' => 'required|integer|min:1',
@@ -112,7 +112,7 @@ class FlightController extends Controller
 
             // 2. Prepare criteria for PKfareService
             $criteria = [
-                'solutionId' => $validatedData['solutionId'] ?? "direct pricing",
+                'solutionId' => $validatedData['solutionId'],
                 'solutionKey' => $validatedData['solutionKey'] ?? null,
                 'journeys' => $validatedData['journeys'] ?? [],
                 'adults' => $validatedData['adults'],
@@ -125,7 +125,11 @@ class FlightController extends Controller
             // 3. Call PKfareService to precise pricing
             $precisePricing = $this->pkfareService->getPrecisePricing($criteria);
 
-            // 4. Return successful response with flight data
+            // 4. Call PKfareService to ancillary pricing
+            $ancillaryPricing = $this->pkfareService->ancillaryPricing($criteria);
+            Log::info('Ancillary: ', $ancillaryPricing['data']);
+
+            // 5. Return successful response with flight data
             return response()->json([
                 'message' => 'Precise pricing retrieved successfully.',
                 'errorMsg' => $precisePricing['errorMsg'] ?? null,

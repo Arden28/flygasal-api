@@ -189,7 +189,7 @@ class PKfareService
                 'adults' => $criteria['adults'] ?? 1,
                 'children' => $criteria['children'] ?? 0,
                 'infants' => $criteria['infants'] ?? 0,
-                'solutionId' => $criteria['solutionId'] ?? 'direct pricing',
+                'solutionId' => 'direct pricing',
                 'solutionKey' => $criteria['solutionKey'] ?? '',
                 'cabin' => '',
                 'tag' => $criteria['tag'] ?? null,
@@ -224,7 +224,7 @@ class PKfareService
             }, $segments);
         }
 
-        Log::debug('Received journeys:', $payload);
+        // Log::debug('Received journeys:', $payload);
 
         return $this->post('/json/precisePricing_V10', $payload);
     }
@@ -276,6 +276,7 @@ class PKfareService
             ]
         ];
 
+
         $journeys = $criteria['journeys'] ?? [];
 
         if (!empty($journeys) && isset($journeys[0]['flightNum'])) {
@@ -301,6 +302,8 @@ class PKfareService
                 ];
             }, $segments);
         }
+
+        Log::debug('Received ancillary:', $payload);
 
 
         // Log::info('Payload Ancillary', $payload);
