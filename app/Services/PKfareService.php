@@ -371,6 +371,7 @@ class PKfareService
             ]
         ];
 
+        Log::info('Payload: ', $payload);
         return $this->post('/json/preciseBooking_V7', $payload);
     }
 
