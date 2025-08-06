@@ -125,6 +125,10 @@ class FlightController extends Controller
             // 3. Call PKfareService to precise pricing
             $precisePricing = $this->pkfareService->getPrecisePricing($criteria);
 
+            // 4. Call PKfareService to ancillary pricing
+            $ancillaryPricing = $this->pkfareService->ancillaryPricing($criteria);
+            Log::info('Ancillary: ', $ancillaryPricing['data']);
+
             // 4. Return successful response with flight data
             return response()->json([
                 'message' => 'Precise pricing retrieved successfully.',
