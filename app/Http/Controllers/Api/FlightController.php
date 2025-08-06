@@ -100,7 +100,7 @@ class FlightController extends Controller
         try {
             // 1. Validate incoming request data
             $validatedData = $request->validate([
-                'solutionId' => 'required|string',
+                'solutionId' => 'nullable|string',
                 'solutionKey' => 'nullable|string',
                 'journeys' => 'nullable|array', // <-- expect an array directly
                 'adults' => 'required|integer|min:1',
@@ -112,14 +112,14 @@ class FlightController extends Controller
 
             // 2. Prepare criteria for PKfareService
             $criteria = [
-                'solutionId' => $validatedData['solutionId'],
+                'solutionId' => $validatedData['solutionId'] ?? "direct pricing",
                 'solutionKey' => $validatedData['solutionKey'] ?? null,
                 'journeys' => $validatedData['journeys'] ?? [],
                 'adults' => $validatedData['adults'],
                 'children' => $validatedData['children'] ?? 0,
                 'infants' => $validatedData['infants'] ?? 0,
                 'cabin' => $validatedData['cabinType'] ?? 'ECONOMY',
-                'tag' => $validatedData['tag'] ?? 'direct pricing'
+                'tag' => $validatedData['tag'] ?? null
             ];
 
             // 3. Call PKfareService to precise pricing

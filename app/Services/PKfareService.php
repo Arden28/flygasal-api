@@ -189,10 +189,10 @@ class PKfareService
                 'adults' => $criteria['adults'] ?? 1,
                 'children' => $criteria['children'] ?? 0,
                 'infants' => $criteria['infants'] ?? 0,
-                'solutionId' => $criteria['solutionId'] ?? '',
+                'solutionId' => $criteria['solutionId'] ?? 'direct pricing',
                 'solutionKey' => $criteria['solutionKey'] ?? '',
                 'cabin' => '',
-                'tag' => $criteria['tag'] ?? 'SAVER',
+                'tag' => $criteria['tag'] ?? null,
                 'journeys' => [], // Will be populated below
             ],
         ];
