@@ -127,7 +127,7 @@ class FlightController extends Controller
 
             // 4. Call PKfareService to ancillary pricing
             $ancillaryPricing = $this->pkfareService->ancillaryPricing($criteria);
-            Log::info('Ancillary: ', $ancillaryPricing['data']);
+            Log::info('Ancillary : ', $ancillaryPricing['data']);
 
             // 4. Return successful response with flight data
             return response()->json([
