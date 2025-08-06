@@ -303,7 +303,7 @@ class PKfareService
             }, $segments);
         }
 
-        Log::debug('Received ancillary:', $payload);
+        // Log::debug('Received ancillary:', $payload);
 
 
         // Log::info('Payload Ancillary', $payload);
