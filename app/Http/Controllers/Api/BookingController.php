@@ -91,6 +91,8 @@ class BookingController extends Controller
                 'currency' => 'required|string|size:3',
             ]);
 
+            Log::info('Selected Flight: ', $validatedData['selectedFlight']);
+
             // 2. Prepare booking details for PKfareService
             $pkfareBookingDetails = [
                 'selectedFlight' => $validatedData['selectedFlight'],
