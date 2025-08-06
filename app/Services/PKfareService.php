@@ -186,13 +186,14 @@ class PKfareService
                 'sign' => md5($this->apiKey . $this->apiSecret),
             ],
             'pricing' => [
-                'journeys' => [], // Will be populated below
                 'adults' => $criteria['adults'] ?? 1,
                 'children' => $criteria['children'] ?? 0,
                 'infants' => $criteria['infants'] ?? 0,
                 'solutionId' => $criteria['solutionId'] ?? '',
-                'cabin' => $criteria['cabinType'] ?? '',
-                'tag' => $criteria['tag'] ?? 'direct pricing',
+                'solutionKey' => $criteria['solutionKey'] ?? '',
+                'cabin' => '',
+                'tag' => $criteria['tag'] ?? 'SAVER',
+                'journeys' => [], // Will be populated below
             ],
         ];
 
