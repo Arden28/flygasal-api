@@ -223,7 +223,7 @@ class PKfareService
             }, $segments);
         }
 
-        Log::debug('Received journeys:', $payload['pricing']['journeys']);
+        Log::debug('Received journeys:', $payload);
 
         return $this->post('/json/precisePricing_V10', $payload);
     }
