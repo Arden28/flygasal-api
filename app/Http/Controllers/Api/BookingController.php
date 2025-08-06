@@ -107,28 +107,25 @@ class BookingController extends Controller
                 // 'paymentToken' => $validatedData['paymentToken'],
             ];
 
-            // 3. Call PKfareService to create the booking
+            // 3. Call PKfare API
             // This is a critical step where the actual booking is made with the airline via PKfare.
             $pkfareResponse = $this->pkfareService->createBooking($pkfareBookingDetails);
 
             Log::info('PKFare Response: ', $pkfareResponse);
 
-            // Check if PKfare booking was successful and retrieve their reference
-            $pkfareBookingReference = $pkfareResponse['bookingReference'] ?? null; // Adjust key based on PKfare response
-            $pkfareBookingStatus = $pkfareResponse['status'] ?? 'pending'; // Adjust key based on PKfare response
-
-            if (!$pkfareBookingReference) {
-                // If PKfare didn't return a reference, something went wrong on their end.
-                throw new \Exception('PKfare did not return a valid booking reference. Booking might have failed.');
+            // 4. Check API response
+            if (!isset($pkfareResponse['errorCode']) || $pkfareResponse['errorCode'] !== '0') {
+                throw new \Exception($pkfareResponse['errorMsg'] ?? 'Booking failed.');
             }
 
-            // 4. Save booking details to local database
+            // 5. Save booking details to local database
             $booking = Booking::create([
                 'user_id' => $request->user()->id,
-                'pkfare_booking_reference' => $pkfareBookingReference,
-                'status' => $pkfareBookingStatus, // Initial status from PKfare
+                'pkfare_booking_reference' => $pkfareResponse['data']['orderNum'],
+                'pnr' => $pkfareResponse['data']['pnr'],
+                // 'status' => $pkfareBookingStatus, // Initial status from PKfare
                 'total_price' => $validatedData['totalPrice'],
-                'currency' => $validatedData['currency'],
+                'currency' => $pkfareResponse['data']['solution']['currency'],
                 'flight_details' => $validatedData['selectedFlight'], // Store the full flight details for reference
                 'passenger_details' => $validatedData['passengers'],
                 'contact_email' => $validatedData['contactEmail'],
@@ -136,25 +133,11 @@ class BookingController extends Controller
                 'booking_date' => now(),
             ]);
 
-            // 5. Record initial transaction (e.g., pending payment)
-            // This assumes payment is handled immediately after booking.
-            // Adjust based on your payment flow (e.g., a separate payment endpoint).
-            Transaction::create([
-                'booking_id' => $booking->id,
-                'amount' => $validatedData['totalPrice'],
-                'currency' => $validatedData['currency'],
-                'type' => 'payment', // Or 'booking_initial_charge'
-                'status' => 'pending', // Status will be updated after actual payment confirmation
-                'payment_gateway_reference' => null, // Will be updated by payment gateway callback
-                'transaction_date' => now(),
-            ]);
-
             DB::commit(); // Commit the database transaction
 
             return response()->json([
                 'message' => 'Booking created successfully.',
                 'booking' => $booking,
-                'pkfare_response' => $pkfareResponse, // For debugging, remove in production
             ], 201); // Created
 
         } catch (ValidationException $e) {
