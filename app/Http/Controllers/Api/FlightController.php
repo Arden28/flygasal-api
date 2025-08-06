@@ -118,7 +118,7 @@ class FlightController extends Controller
                 'adults' => $validatedData['adults'],
                 'children' => $validatedData['children'] ?? 0,
                 'infants' => $validatedData['infants'] ?? 0,
-                'cabin' => $validatedData['cabinType'] ?? 'Economy',
+                'cabin' => 'economy',
                 'tag' => $validatedData['tag'] ?? 'direct pricing'
             ];
 
