@@ -322,6 +322,7 @@ class PKfareService
 
     public function createBooking(array $bookingDetails): array
     {
+
         // Build payload as expected by PKFare's booking API
         $payload = [
             'authentication' => [
@@ -354,7 +355,7 @@ class PKfareService
                     'chdTax' => $bookingDetails['selectedFlight']['chdTax'] ?? null,
                     'infFare' => $bookingDetails['selectedFlight']['infFare'] ?? null,
                     'infTax' => $bookingDetails['selectedFlight']['infTax'] ?? null,
-                    'journeys' => $bookingDetails['selectedFlight']['journeys'] ?? [],
+                    'journeys' => [],
                 ],
 
                 'contact' => [
@@ -370,6 +371,34 @@ class PKfareService
                 'ancillary' => $bookingDetails['ancillary'] ?? [], // Optional baggage/seat selection
             ]
         ];
+
+        // Transform journey segments (must be associative with keys like journey_0, journey_1)
+
+        $journeys = $bookingDetails['selectedFlight']['segments'] ?? [];
+
+        if (!empty($journeys) && isset($journeys[0]['flightNum'])) {
+            // Single flat journey, wrap it
+            $journeys = [ $journeys ];
+        }
+
+        // Transform journey segments (must be associative with keys like journey_0, journey_1)
+        foreach ($journeys as $index => $segments) {
+            $key = 'journey_' . $index;
+
+            $payload['booking']['solution']['journeys'][$key] = array_map(function ($segment) {
+                return [
+                    'airline' => $segment['airline'] ?? '',
+                    'flightNum' => $segment['flightNum'] ?? '',
+                    'arrival' => $segment['arrival'] ?? '',
+                    'arrivalDate' => date('Y-m-d', $segment['arrivalDate'] / 1000),
+                    'arrivalTime' => date('H:i', $segment['arrivalDate'] / 1000),
+                    'departure' => $segment['departure'] ?? '',
+                    'departureDate' => date('Y-m-d', $segment['departureDate'] / 1000),
+                    'departureTime' => date('H:i', $segment['departureDate'] / 1000),
+                    'bookingCode' => $segment['bookingCode'] ?? '',
+                ];
+            }, $segments);
+        }
 
         Log::info('Booking Payload: ', $payload);
         return $this->post('/json/preciseBooking_V7', $payload);
