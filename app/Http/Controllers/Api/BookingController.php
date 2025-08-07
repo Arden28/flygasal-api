@@ -154,6 +154,7 @@ class BookingController extends Controller
             $totalAmount = $pkfareResponse['data']['solution']['adtFare'] + $pkfareResponse['data']['solution']['adtTax'] + $pkfareResponse['data']['solution']['chdFare'] + $pkfareResponse['data']['solution']['chdTax'];
 
             $bookingData = [
+                'user_id'       => $request->user()->id,
                 'order_num'        => $pkfareResponse['data']['orderNum'],
                 'pnr'              => $pkfareResponse['data']['pnr'],
                 'solution_id'        => $pkfareResponse['data']['solution']['solutionId'],
