@@ -112,7 +112,7 @@ class FlightController extends Controller
 
             // 2. Prepare criteria for PKfareService
             $criteria = [
-                'solutionId' => $validatedData['solutionId'],
+                'solutionId' => $validatedData['solutionId'] ?? "direct pricing",
                 'solutionKey' => $validatedData['solutionKey'] ?? null,
                 'journeys' => $validatedData['journeys'] ?? [],
                 'adults' => $validatedData['adults'],
