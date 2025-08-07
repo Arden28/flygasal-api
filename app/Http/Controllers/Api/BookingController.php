@@ -116,9 +116,37 @@ class BookingController extends Controller
 
             Log::info('PKFare Response: ', $pkfareResponse);
 
+            // Error map (put at top or in a helper)
+            $errorMessages = [
+                'S001' => 'System error.',
+                'B002' => 'Partner ID does not exist.',
+                'B003' => 'Invalid signature. Please contact support.',
+                'B035' => 'Too many requests. Please try again later.',
+                'P001' => 'Invalid input data.',
+                'P002' => 'Missing required fields.',
+                'P006' => 'Invalid parameters. Please review your data.',
+                '0307' => 'Seats are no longer available.',
+                'B005' => 'Pricing expired. Please search again.',
+                'B007' => 'Flight segment is no longer valid.',
+                'B008' => 'Flight changed. Please reselect.',
+                'B011' => 'Fare is unavailable. Try another flight.',
+                'B017' => 'Price has changed. Please confirm again.',
+                'B029' => 'Duplicate reservation found. Please use the previous order or cancel it.',
+                'B068' => 'Flight segment mismatch. Please reselect your flights.',
+                // Add more as needed...
+            ];
+
             // 4. Check API response
-            if (!isset($pkfareResponse['errorCode']) || $pkfareResponse['errorCode'] !== '0') {
-                throw new \Exception($pkfareResponse['errorMsg'] ?? 'Booking failed.');
+            $errorCode = $pkfareResponse['errorCode'] ?? null;
+
+            if ($errorCode !== '0') {
+                $message = $errorMessages[$errorCode] ?? ($pkfareResponse['errorMsg'] ?? 'Booking failed.');
+
+                return response()->json([
+                    'success' => false,
+                    'code' => $errorCode,
+                    'message' => $message,
+                ], 400); // Bad request or adjust to suit
             }
 
             // 5. Save booking details to local database
@@ -140,6 +168,8 @@ class BookingController extends Controller
 
             return response()->json([
                 'message' => 'Booking created successfully.',
+                'errorMsg' => 'Booking created successfully',
+                'errorCode' => 0,
                 'booking' => $booking,
             ], 201); // Created
 
