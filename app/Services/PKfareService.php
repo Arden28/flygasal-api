@@ -337,7 +337,10 @@ class PKfareService
                         'birthday' => $passenger['dob'],
                         'firstName' => $passenger['firstName'],
                         'lastName' => $passenger['lastName'],
-                        'nationality' => $passenger['nationality'] ?? 'US', // default if missing
+                        'nationality' => $passenger['nationality'] ?? 'KE', // default if missing
+                        'cardType' => $passenger['cardType'] ?? 'P',
+                        'cardNum' => $passenger['passportNumber'] ?? null,
+                        'cardExpiredDate' => $passenger['passportExpiry'] ?? null,
                         'psgType' => $passenger['type'],
                         'sex' => strtoupper(substr($passenger['gender'], 0, 1)), // 'M' or 'F'
                         'ffpNumber' => $passenger['ffpNumber'] ?? null,
