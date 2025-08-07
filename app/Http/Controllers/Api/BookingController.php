@@ -181,6 +181,8 @@ class BookingController extends Controller
 
             DB::commit(); // Commit the database transaction
 
+            Log::info("BookingDetails: {$booking->order_num}");
+
             return response()->json([
                 'message' => 'Booking created successfully.',
                 'errorMsg' => 'Booking created successfully',
