@@ -14,16 +14,37 @@ return new class extends Migration
         Schema::create('bookings', function (Blueprint $table) {
             $table->id(); // Auto-incrementing ID
             $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Foreign key to the users table
-            $table->string('pkfare_booking_reference')->unique()->nullable(); // Unique reference from PKfare API (PNR)
-            $table->string('status')->default('pending'); // Booking status: e.g., 'pending', 'confirmed', 'ticketed', 'cancelled', 'failed'
-            $table->decimal('total_price', 10, 2); // Total price of the booking
-            $table->string('currency', 3); // Currency of the total price (e.g., "USD", "KES")
-            $table->json('flight_details'); // JSON blob to store flight segments, times, airlines, etc. from PKfare response
-            $table->json('passenger_details'); // JSON blob to store passenger names, types, contact info
+
+            $table->string('order_num')->unique();     // orderNum
+            $table->string('pnr');                     // pnr
+            $table->text('solution_id')->nullable();                     // solutionId
+
+            $table->string('fare_type')->nullable();               // solution.fareType
+            $table->string('currency')->nullable();                // solution.currency
+
+            $table->decimal('adt_fare', 10, 2);        // solution.adtFare
+            $table->decimal('adt_tax', 10, 2);         // solution.adtTax
+            $table->decimal('chd_fare', 10, 2);        // solution.chdFare
+            $table->decimal('chd_tax', 10, 2);         // solution.chdTax
+
+            $table->unsignedTinyInteger('infants')->default(0);    // solution.infants
+            $table->unsignedTinyInteger('adults')->default(0);     // solution.adults
+            $table->unsignedTinyInteger('children')->default(0);   // solution.children
+
+            $table->string('plating_carrier')->nullable();         // solution.platingCarrier
+
+            $table->json('baggage_info')->nullable();              // solution.baggageMap
+            $table->json('flights')->nullable();                   // flights array
+            $table->json('segments')->nullable();                  // segments array
+            $table->json('passengers')->nullable();                  // passengers array
+
+            $table->decimal('agent_fee', 10, 2)->default(0);    // agent fees
+            $table->decimal('total_amount', 10, 2);    // adt + chd fare + taxes
+            $table->timestamp('booking_date')->useCurrent(); // Date and time the booking was initiated
+            $table->string('status')->default('pending');         // Booking Status (pending, confirmed)
+            $table->string('contact_name')->nullable(); // Contact name for the booking
             $table->string('contact_email')->nullable(); // Contact email for the booking
             $table->string('contact_phone')->nullable(); // Contact phone number for the booking
-            $table->string('pnr')->nullable(); // Contact phone number for the booking
-            $table->timestamp('booking_date')->useCurrent(); // Date and time the booking was initiated
             $table->timestamps(); // created_at and updated_at columns
         });
     }

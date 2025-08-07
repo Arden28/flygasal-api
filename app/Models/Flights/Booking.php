@@ -18,16 +18,30 @@ class Booking extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'user_id',
-        'pkfare_booking_reference',
-        'status',
-        'total_price',
+        'order_num',
+        'pnr',
+        'solution_id',
+        'fare_type',
         'currency',
-        'flight_details',
-        'passenger_details',
+        'adt_fare',
+        'adt_tax',
+        'chd_fare',
+        'chd_tax',
+        'infants',
+        'adults',
+        'children',
+        'plating_carrier',
+        'baggage_info',
+        'flights',
+        'segments',
+        'passengers',
+        'agent_fee',
+        'total_amount',
+        'contact_name',
         'contact_email',
         'contact_phone',
         'booking_date',
+        'status'
     ];
 
     /**
@@ -36,9 +50,12 @@ class Booking extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'flight_details' => 'array', // Cast to array for easy JSON handling
-        'passenger_details' => 'array', // Cast to array for easy JSON handling
+        'baggage_info' => 'array',
+        'flights' => 'array',
+        'segments' => 'array',
+        'passengers' => 'array',
         'booking_date' => 'datetime',
+        'agent_fee' => 'decimal:2',
         'total_price' => 'decimal:2',
     ];
 

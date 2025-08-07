@@ -150,19 +150,34 @@ class BookingController extends Controller
             }
 
             // 5. Save booking details to local database
-            $booking = Booking::create([
-                'user_id' => $request->user()->id,
-                'pkfare_booking_reference' => $pkfareResponse['data']['orderNum'],
-                'pnr' => $pkfareResponse['data']['pnr'],
-                // 'status' => $pkfareBookingStatus, // Initial status from PKfare
-                'total_price' => $validatedData['totalPrice'],
-                'currency' => $pkfareResponse['data']['solution']['currency'],
-                'flight_details' => $validatedData['selectedFlight'], // Store the full flight details for reference
-                'passenger_details' => $validatedData['passengers'],
+            $totalAmount = $pkfareResponse['data']['solution']['adtFare'] + $pkfareResponse['data']['solution']['adtTax'] + $pkfareResponse['data']['solution']['chdFare'] + $pkfareResponse['data']['solution']['chdTax'];
+
+            $bookingData = [
+                'order_num'        => $pkfareResponse['data']['orderNum'],
+                'pnr'              => $pkfareResponse['data']['pnr'],
+                'solution_id'        => $pkfareResponse['data']['solution']['solutionId'],
+                'fare_type'        => $pkfareResponse['data']['solution']['fareType'],
+                'currency'         => $pkfareResponse['data']['solution']['currency'],
+                'adt_fare'         => $pkfareResponse['data']['solution']['adtFare'],
+                'adt_tax'          => $pkfareResponse['data']['solution']['adtTax'],
+                'chd_fare'         => $pkfareResponse['data']['solution']['chdFare'],
+                'chd_tax'          => $pkfareResponse['data']['solution']['chdTax'],
+                'infants'          => $pkfareResponse['data']['solution']['infants'],
+                'adults'           => $pkfareResponse['data']['solution']['adults'],
+                'children'         => $pkfareResponse['data']['solution']['children'],
+                'plating_carrier'  => $pkfareResponse['data']['solution']['platingCarrier'],
+                'baggage_info'     => json_encode($pkfareResponse['data']['solution']['baggageMap']),
+                'flights'          => json_encode($pkfareResponse['data']['flights']),
+                'segments'         => json_encode($pkfareResponse['data']['segments']),
+                'passengers'       => json_decode($validatedData['passengers']),
+                'agent_fee'     => $pkfareResponse['data']['agent_fee'],
+                'total_amount'     => $totalAmount,
+                'contact_name' => $validatedData['contactName'],
                 'contact_email' => $validatedData['contactEmail'],
                 'contact_phone' => $validatedData['contactPhone'],
                 'booking_date' => now(),
-            ]);
+            ];
+            $booking = Booking::create($bookingData);
 
             DB::commit(); // Commit the database transaction
 
