@@ -51,7 +51,7 @@ class PKfareService
                 'X-PKFARE-API-Key' => $this->apiKey,
                 // 'Authorization' => 'Bearer ' . $this->generateAccessToken(), // Example for OAuth
             ],
-            'timeout' => 30, // Request timeout in seconds
+            'timeout' => 60, // Request timeout in seconds
         ]);
     }
 
