@@ -153,8 +153,15 @@ class BookingController extends Controller
             // 5. Save booking details to local database
             $totalAmount = $pkfareResponse['data']['solution']['adtFare'] + $pkfareResponse['data']['solution']['adtTax'] + $pkfareResponse['data']['solution']['chdFare'] + $pkfareResponse['data']['solution']['chdTax'];
 
+            // 6. Ensure the user is authentificated
+            $user = $request->user();
+
+            if (!$user) {
+                return response()->json(['error' => 'Unauthenticated'], 401);
+            }
+
             $bookingData = [
-                'user_id'          => $request->user()->id,
+                'user_id'          => $user->id,
                 'order_num'        => $pkfareResponse['data']['orderNum'],
                 'pnr'              => $pkfareResponse['data']['pnr'],
                 'solution_id'        => $pkfareResponse['data']['solution']['solutionId'],
@@ -168,9 +175,9 @@ class BookingController extends Controller
                 'adults'           => $pkfareResponse['data']['solution']['adults'],
                 'children'         => $pkfareResponse['data']['solution']['children'],
                 'plating_carrier'  => $pkfareResponse['data']['solution']['platingCarrier'],
-                'baggage_info'     => json_encode($pkfareResponse['data']['solution']['baggageMap']),
-                'flights'          => json_encode($pkfareResponse['data']['flights']),
-                'segments'         => json_encode($pkfareResponse['data']['segments']),
+                'baggage_info'     => $pkfareResponse['data']['solution']['baggageMap'],
+                'flights'          => $pkfareResponse['data']['flights'],
+                'segments'         => $pkfareResponse['data']['segments'],
                 'passengers'       => $validatedData['passengers'],
                 'agent_fee'     => $validatedData['agent_fee'] ?? 0,
                 'total_amount'     => $totalAmount,
