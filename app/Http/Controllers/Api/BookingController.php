@@ -169,7 +169,7 @@ class BookingController extends Controller
                 'baggage_info'     => json_encode($pkfareResponse['data']['solution']['baggageMap']),
                 'flights'          => json_encode($pkfareResponse['data']['flights']),
                 'segments'         => json_encode($pkfareResponse['data']['segments']),
-                'passengers'       => json_decode($validatedData['passengers']),
+                'passengers'       => $validatedData['passengers'],
                 'agent_fee'     => $pkfareResponse['data']['agent_fee'],
                 'total_amount'     => $totalAmount,
                 'contact_name' => $validatedData['contactName'],
