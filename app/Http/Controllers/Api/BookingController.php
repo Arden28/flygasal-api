@@ -89,6 +89,7 @@ class BookingController extends Controller
                 'contactPhone' => 'required|string|max:20',
                 'totalPrice' => 'required|numeric|min:0',
                 'currency' => 'required|string|size:3',
+                'agent_fee' => 'nullable'
             ]);
 
             $selectedFlight = $validatedData['selectedFlight'];
@@ -170,7 +171,7 @@ class BookingController extends Controller
                 'flights'          => json_encode($pkfareResponse['data']['flights']),
                 'segments'         => json_encode($pkfareResponse['data']['segments']),
                 'passengers'       => $validatedData['passengers'],
-                'agent_fee'     => $pkfareResponse['data']['agent_fee'],
+                'agent_fee'     => $validatedData['agent_fee'] ?? 0,
                 'total_amount'     => $totalAmount,
                 'contact_name' => $validatedData['contactName'],
                 'contact_email' => $validatedData['contactEmail'],
