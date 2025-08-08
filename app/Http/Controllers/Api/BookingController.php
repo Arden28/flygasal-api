@@ -247,44 +247,69 @@ class BookingController extends Controller
      */
     public function cancel(Request $request, Booking $booking)
     {
-        // Authorization check: A user can only cancel their own bookings unless they are admin/agent.
-        if (auth()->user()->hasRole('customer') && $booking->user_id !== auth()->id()) {
+
+        // 1. Validate incoming request data for booking
+        $validatedData = $request->validate([
+            'orderNum' => 'required|string|exists:bookings,order_num', // Ensure orderNum matches an existing booking in DB
+            'pnr' => 'required|string|unique:bookings,pnr', // Ensure PNR is required, string, and does not already exist in DB
+        ]);
+
+        // 2. Authorization check: A user can only cancel their own bookings unless they are admin/agent.
+        if (auth()->user()->hasRole('admin') && $booking->user_id !== auth()->id()) {
             return response()->json(['message' => 'Unauthorized to cancel this booking.'], 403);
         }
 
-        // Prevent cancellation if booking is already cancelled or ticketed (depending on business rules)
+        // 3. Prevent cancellation if booking is already cancelled or ticketed (depending on business rules)
         if (in_array($booking->status, ['cancelled', 'ticketed', 'completed'])) {
             return response()->json(['message' => 'Booking cannot be cancelled in its current status.'], 400);
         }
 
         DB::beginTransaction();
         try {
-            // 1. Call PKfareService to cancel the booking
-            // PKfare might have specific requirements for cancellation (e.g., cancellation reasons).
+            // 4. Call PKfareService to cancel the booking.
             $pkfareResponse = $this->pkfareService->cancelBooking($booking->pkfare_booking_reference);
 
-            // Check PKfare response for successful cancellation
-            $pkfareCancellationStatus = $pkfareResponse['status'] ?? 'failed'; // Adjust key based on PKfare response
+            // 5. Check API response
+            $errorCode = $pkfareResponse['errorCode'] ?? null;
 
-            if ($pkfareCancellationStatus !== 'cancelled' && $pkfareCancellationStatus !== 'CANCELED') { // Adjust based on actual PKfare success status
-                 throw new \Exception('PKfare API reported an issue with cancellation: ' . ($pkfareResponse['message'] ?? 'Unknown error'));
+
+            // Error map (put at top or in a helper)
+            $errorMessages = [
+                'S001' => 'System error.',
+                'P001' => 'Wrong parameter.',
+                'B002' => 'Partner does not exist.',
+                'B003' => 'Illegal sign. Please check your signature.',
+                'B009' => 'Order status is invalid. Order status must be "to_be_paid".',
+                'B010' => 'Order number does not exist.',
+                'B037' => 'Order does not exist.',
+                'B041' => 'The order has been cancelled.',
+            ];
+
+            if ($errorCode !== '0') {
+                $message = $errorMessages[$errorCode] ?? ($pkfareResponse['errorMsg'] ?? 'Cancellation failed.');
+
+                return response()->json([
+                    'success' => false,
+                    'code' => $errorCode,
+                    'message' => $message,
+                ], 400); // Bad request or adjust to suit
             }
 
-            // 2. Update local booking status
+            // 6. Update local booking status
             $booking->update([
                 'status' => 'cancelled',
             ]);
 
-            // 3. Record a cancellation transaction (e.g., for refund processing)
-            Transaction::create([
-                'booking_id' => $booking->id,
-                'amount' => $booking->total_price, // Or the refund amount if different
-                'currency' => $booking->currency,
-                'type' => 'refund',
-                'status' => 'pending', // Refund status will be updated by payment gateway callback
-                'payment_gateway_reference' => null,
-                'transaction_date' => now(),
-            ]);
+            // // 7. Record a cancellation transaction (e.g., for refund processing)
+            // Transaction::create([
+            //     'booking_id' => $booking->id,
+            //     'amount' => $booking->total_amount, // Or the refund amount if different
+            //     'currency' => $booking->currency,
+            //     'type' => 'refund',
+            //     'status' => 'pending', // Refund status will be updated by payment gateway callback
+            //     'payment_gateway_reference' => null,
+            //     'transaction_date' => now(),
+            // ]);
 
             DB::commit();
 

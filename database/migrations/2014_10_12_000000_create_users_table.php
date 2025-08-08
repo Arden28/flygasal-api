@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('phone_country_code')->nullable();
             $table->string('password');
             $table->boolean('is_active')->default(false);
+            $table->decimal('wallet_balance', 10, 2)->default(0);
             $table->rememberToken();
             $table->timestamps();
         });

@@ -54,6 +54,7 @@ class UserController extends Controller
                 'phone' => 'nullable|string|max:16|unique:users,phone_number',
                 'password' => 'required|string|min:8', // No 'confirmed' needed for admin creation
                 'type' => 'nullable|string', // Role name
+                'walletBalance' => 'nullable', // Initial Wallet Amount
             ]);
 
             $user = User::create([
@@ -61,6 +62,7 @@ class UserController extends Controller
                 'email' => $validatedData['email'],
                 'phone_number' => $validatedData['phone'],
                 'password' => Hash::make($validatedData['password']),
+                'wallet_balance' => $validatedData['walletBalance'],
                 'is_active' => true
             ]);
 

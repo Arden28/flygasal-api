@@ -431,12 +431,22 @@ class PKfareService
      * @return array The cancellation confirmation
      * @throws \Exception
      */
-    public function cancelBooking(string $bookingReference): array
+    public function cancelBooking(array $bookingDetails): array
     {
-        // The actual endpoint for cancellation might be something like '/air/booking/{reference}/cancel'
-        // or a POST request to a cancellation endpoint.
-        // Consult PKfare documentation.
-        return $this->post('/air/booking/' . $bookingReference . '/cancel');
+
+        // Build payload as expected by PKFare's booking API
+        $payload = [
+            'authentication' => [
+                'partnerId' => $this->apiKey,
+                'sign' => md5($this->apiKey . $this->apiSecret),
+            ],
+            'cancel' => [
+                'orderNum' => $bookingDetails['orderNum'],
+                'virtualPnr' => $bookingDetails['pnr']
+            ]
+        ];
+
+        return $this->post('/json/cancel', $payload);
     }
 
     // TODO: Add more PKfare specific methods as needed (e.g., ticket issuance, payment status, etc.)
