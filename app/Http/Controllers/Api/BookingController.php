@@ -219,13 +219,20 @@ class BookingController extends Controller
     /**
      * Display the specified booking.
      *
-     * @param Booking $booking The booking instance retrieved by route model binding.
+     * @param $bookingId The booking instance retrieved by route model binding.
      * @return \Illuminate\Http\JsonResponse
      */
-    public function show(Booking $booking)
+    public function show($bookingId)
     {
+        $booking = Booking::where('order_num', $bookingId)->first();
+        if(!$booking){
+            return response()->json([
+                'message' => 'Booking not found'
+            ], 404);
+        }
+
         // Authorization check: A user can only view their own bookings unless they are admin/agent.
-        if (auth()->user()->hasRole('customer') && $booking->user_id !== auth()->id()) {
+        if (auth()->user()->hasRole('agent') && $booking->user_id !== auth()->id()) {
             return response()->json(['message' => 'Unauthorized to view this booking.'], 403);
         }
 
@@ -265,9 +272,13 @@ class BookingController extends Controller
         }
 
         DB::beginTransaction();
+        $requestData = [
+            'orderNum' => $validatedData['orderNum'],
+            'virtualPnr' => $validatedData['pnr']
+        ];
         try {
             // 4. Call PKfareService to cancel the booking.
-            $pkfareResponse = $this->pkfareService->cancelBooking($booking->pkfare_booking_reference);
+            $pkfareResponse = $this->pkfareService->cancelBooking($requestData);
 
             // 5. Check API response
             $errorCode = $pkfareResponse['errorCode'] ?? null;
