@@ -404,7 +404,7 @@ class PKfareService
             }, $segments);
         }
 
-        Log::info('Booking Payload: ', $payload);
+        // Log::info('Booking Payload: ', $payload);
         return $this->post('/json/preciseBooking_V7', $payload);
     }
 
@@ -418,10 +418,20 @@ class PKfareService
      */
     public function getBookingDetails(string $bookingReference): array
     {
-        // The actual endpoint for retrieving booking details might be something like '/air/booking/{reference}'
-        // or a POST request with the reference in the body.
-        // Consult PKfare documentation.
-        return $this->get('/air/booking/' . $bookingReference);
+
+        // Build payload as expected by PKFare's booking API
+        $payload = [
+            'authentication' => [
+                'partnerId' => $this->apiKey,
+                'sign' => md5($this->apiKey . $this->apiSecret),
+            ],
+            'data' => [
+                'orderNum' => $bookingReference,
+                'includeFields' => "passengers,journeys,solutions,ancillary,scheduleChange,checkinInfo"
+            ]
+        ];
+
+        return $this->post('/json/orderDetail/v10', $payload);
     }
 
     /**

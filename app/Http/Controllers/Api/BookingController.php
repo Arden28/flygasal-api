@@ -246,6 +246,60 @@ class BookingController extends Controller
     }
 
     /**
+     * Display the specified booking.
+     *
+     * @param $bookingId The booking instance retrieved by route model binding.
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function orderDetails($bookingId)
+    {
+        $booking = Booking::where('order_num', $bookingId)->first();
+        if(!$booking){
+            return response()->json([
+                'message' => 'Booking not found'
+            ], 404);
+        }
+
+        // Authorization check: A user can only view their own bookings unless they are admin/agent.
+        if (auth()->user()->hasRole('agent') && $booking->user_id !== auth()->id()) {
+            return response()->json(['message' => 'Unauthorized to view this booking.'], 403);
+        }
+
+        // Eager load transactions related to the booking
+        $pkfareResponse = $this->pkfareService->getBookingDetails($booking->order_num);
+
+        $errorCode = $pkfareResponse['errorCode'] ?? null;
+
+
+        // Error map (put at top or in a helper)
+        $errorMessages = [
+            'S001' => 'System error.',
+            'S002' => 'Request timeout.',
+            'P001' => 'Parameter is illegal.',
+            'B002' => 'PartnerID does not exist.',
+            'B003' => 'Illegal sign. Please check your signature.',
+            'B048' => 'Request buyer is not matched with order.',
+            'B037' => 'Order does not exist.',
+        ];
+
+        if ($errorCode !== '0') {
+            $message = $errorMessages[$errorCode] ?? ($pkfareResponse['errorMsg'] ?? 'Falied to fecth booking details.');
+
+            return response()->json([
+                'success' => false,
+                'code' => $errorCode,
+                'message' => $message,
+            ], 400); // Bad request or adjust to suit
+        }
+
+        return response()->json([
+            'code' => $pkfareResponse['errorCode'],
+            'message' => 'Booking retrieved successfully.',
+            'data' => $pkfareResponse['data'],
+        ]);
+    }
+
+    /**
      * Cancel the specified booking.
      *
      * @param Request $request

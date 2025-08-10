@@ -89,8 +89,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Resource routes for bookings: index, store, show, destroy (using 'cancel' method)
     Route::get('/bookings', [BookingController::class, 'index']);
     Route::post('/flights/bookings', [BookingController::class, 'store']);
-    Route::get('/bookings/{booking}', [BookingController::class, 'show']);
+    Route::get('/bookings/{booking}', [BookingController::class, 'orderDetails']);
     Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel']); // Custom route for cancellation
+    // Route::get('/bookings/{booking}', [BookingController::class, 'show']);
 
     // Admin Routes - Protected by 'manage-xxx' permissions
     Route::prefix('admin')->group(function () {

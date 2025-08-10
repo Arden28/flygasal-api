@@ -42,6 +42,7 @@ return new class extends Migration
             $table->decimal('total_amount', 10, 2);    // adt + chd fare + taxes
             $table->timestamp('booking_date')->useCurrent(); // Date and time the booking was initiated
             $table->string('status')->default('pending');         // Booking Status (pending, confirmed)
+            $table->string('status')->default('unpaid');         // Booking Payment Status (unpaid, paid, refunded)
             $table->string('contact_name')->nullable(); // Contact name for the booking
             $table->string('contact_email')->nullable(); // Contact email for the booking
             $table->string('contact_phone')->nullable(); // Contact phone number for the booking
