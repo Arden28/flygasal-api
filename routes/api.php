@@ -89,6 +89,7 @@ Route::middleware('auth:sanctum')->group(function () {
             'agency_currency' => $user->agency_currency ?? 'USD',
             'agency_markup' => number_format($user->agency_markup, 2, '.', ''),
             'role' => $user->getRoleNames()->first() ?? 'No role assigned', // Single role or fallback
+            'booking_count' => $user->bookings()->count() ?? 0,
             // 'roles' => $user->getRoleNames()->toArray(), // Array of all roles
         ];
 
