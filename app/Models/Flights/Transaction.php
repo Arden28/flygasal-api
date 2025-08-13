@@ -23,6 +23,7 @@ class Transaction extends Model
         'status',
         'payment_gateway_reference',
         'transaction_date',
+        'attachment',
     ];
 
     /**

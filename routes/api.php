@@ -7,7 +7,9 @@ use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\FlightController;
+use App\Http\Controllers\Api\PaymentGatewayController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\SettingsController;
 use App\Models\Flights\Airport;
 use App\Models\Settings\Setting;
@@ -115,6 +117,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/bookings/{booking}', [BookingController::class, 'orderDetails']);
     Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel']); // Custom route for cancellation
     // Route::get('/bookings/{booking}', [BookingController::class, 'show']);
+
+    // Transaction Management Routes
+    Route::post('transactions', [TransactionController::class, 'index']);
+    Route::post('transactions/add', [TransactionController::class, 'store']);
+    Route::post('payment_gateways', [PaymentGatewayController::class, 'index']);
 
     // Admin Routes - Protected by 'manage-xxx' permissions
     Route::prefix('admin')->group(function () {
