@@ -61,8 +61,9 @@ class User extends Authenticatable
         'phone_verified_at' => 'datetime',
     ];
 
-    public function bookings(){
-        $this->hasMany(Booking::class, 'user_id');
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class, 'user_id', 'id');
     }
 
     public function transactions(): HasMany

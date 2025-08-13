@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('bookings', function (Blueprint $table) {
             $table->id(); // Auto-incrementing ID
-            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Foreign key to the users table
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade'); // Foreign key to the users table
 
             $table->string('order_num')->unique();     // orderNum
             $table->string('pnr');                     // pnr
