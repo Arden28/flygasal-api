@@ -39,6 +39,7 @@ class User extends Authenticatable
         'agency_logo',
         'agency_currency',
         'agency_markup',
+        'password', // Added to allow mass-assignment
     ];
 
     /**
