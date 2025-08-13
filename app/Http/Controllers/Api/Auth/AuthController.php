@@ -29,7 +29,7 @@ class AuthController extends Controller
             $validatedData = $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
-                'phone' => 'required|string|max:15|unique:users',
+                'phone_number' => 'required|string|max:15|unique:users',
                 'password' => 'required|string|min:8', // 'confirmed' checks for password_confirmation field
                 'role' =>     'nullable|string|in:agent,user',
                 'walletBalance' => 'nullable', // Initial Wallet Amount
@@ -44,7 +44,7 @@ class AuthController extends Controller
             $user = User::create([
                 'name' => $validatedData['name'],
                 'email' => $validatedData['email'],
-                'phone_number' => $validatedData['phone'],
+                'phone_number' => $validatedData['phone_number'],
                 'password' => Hash::make($validatedData['password']), // Hash the password
                 'wallet_balance' => 0,
                 'agency_name' => $validatedData['agency_name'] ?? null,
