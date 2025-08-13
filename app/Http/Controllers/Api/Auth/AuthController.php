@@ -30,7 +30,7 @@ class AuthController extends Controller
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
                 'phone' => 'required|string|max:15|unique:users',
-                'password' => 'required|string|min:8|confirmed', // 'confirmed' checks for password_confirmation field
+                'password' => 'required|string|min:8', // 'confirmed' checks for password_confirmation field
                 'role' =>     'nullable|string|in:agent,user',
                 'walletBalance' => 'nullable', // Initial Wallet Amount
                 'agency_name' => 'nullable|string|max:255',
