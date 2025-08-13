@@ -29,17 +29,29 @@ class AuthController extends Controller
             $validatedData = $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
-                'phone_number' => 'required|string|max:15|unique:users',
+                'phone' => 'required|string|max:15|unique:users',
                 'password' => 'required|string|min:8|confirmed', // 'confirmed' checks for password_confirmation field
-                'role' =>     'nullable|string|in:agent,user'
+                'role' =>     'nullable|string|in:agent,user',
+                'walletBalance' => 'nullable', // Initial Wallet Amount
+                'agency_name' => 'nullable|string|max:255',
+                'agency_license' => 'nullable|string|max:255',
+                'agency_city' => 'nullable|string|max:255',
+                'agency_address' => 'nullable|string|max:255',
+                'agency_logo' => 'nullable|image|mimes:png,jpg,jpeg,gif,svg|max:2048', // Optional file upload
             ]);
 
             // Create the new user
             $user = User::create([
                 'name' => $validatedData['name'],
                 'email' => $validatedData['email'],
-                'phone_number' => $validatedData['phone_number'],
+                'phone_number' => $validatedData['phone'],
                 'password' => Hash::make($validatedData['password']), // Hash the password
+                'wallet_balance' => 0,
+                'agency_name' => $validatedData['agency_name'] ?? null,
+                'agency_license' => $validatedData['agency_license'] ?? null,
+                'agency_city' => $validatedData['agency_city'] ?? null,
+                'agency_address' => $validatedData['agency_address'] ?? null,
+                'agency_logo' => $validatedData['agency_logo'] ?? null,
                 'is_active' => false
             ]);
 
@@ -50,7 +62,7 @@ class AuthController extends Controller
                 $user->assignRole($customerRole);
             } else {
                 // Log an error if the customer role is not found (should not happen if seeder ran)
-                Log::error('Default "user" role not found during user registration.');
+                Log::error('Default "agent" role not found during user registration.');
             }
 
             // Generate a new API token for the user using Laravel Sanctum
