@@ -49,15 +49,25 @@ class ProfileController extends Controller
                 'password' => 'nullable|string|min:8', // Password can be updated, or left null
                 'roles' => 'nullable|array',
                 'roles.*' => 'string|exists:roles,name',
+                'agency_name' => 'nullable|string|max:255',
+                'agency_license' => 'nullable|string|max:255',
+                'agency_city' => 'nullable|string|max:255',
+                'agency_address' => 'nullable|string|max:255',
+                'agency_logo' => 'nullable|image|mimes:png,jpg,jpeg,gif,svg|max:2048', // Optional file upload
             ]);
 
-            Log::info($validatedData);
+            // Log::info($validatedData);
 
             // Update user details
             $user->update([
                 'name' => $validatedData['name'] ?? $user->name,
                 'email' => $validatedData['email'] ?? $user->email,
                 'password' => isset($validatedData['password']) ? Hash::make($validatedData['password']) : $user->password,
+                'agency_name' => $validatedData['agency_name'] ?? $user->agency_name,
+                'agency_license' => $validatedData['agency_license'] ?? $user->agency_license,
+                'agency_city' => $validatedData['agency_city'] ?? $user->agency_city,
+                'agency_address' => $validatedData['agency_address'] ?? $user->agency_address,
+                'agency_logo' => $validatedData['agency_logo'] ?? $user->agency_logo,
             ]);
 
             // Sync roles if provided
