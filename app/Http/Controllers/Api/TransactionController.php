@@ -42,10 +42,16 @@ class TransactionController extends Controller
         ]);
     }
 
+    /**
+     * Store a newly created user in storage.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function store(Request $request)
     {
         // Validate request
-        $validator = Validator::make($request->all(), [
+        $validatedData = $request->validate([
             'user_id' => 'required|exists:users,id',
             'type' => 'required|string|in:wallet_topup',
             'amount' => 'required|numeric|min:0',
@@ -54,21 +60,17 @@ class TransactionController extends Controller
             'payment_gateway' => 'required|string',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(['status' => 'false', 'errors' => $validator->errors()], 422);
-        }
-
         // Create transaction
         $transaction = Transaction::create([
-            'user_id' => $request->user_id,
+            'user_id' => $validatedData['user_id'] ?? Auth::user()->id,
             'booking_id' => null, // Not used for wallet_topup
-            'amount' => $request->amount,
-            'currency' => $request->currency,
-            'type' => $request->type,
+            'amount' => $validatedData['amount'],
+            'currency' => $validatedData['currency'],
+            'type' => $validatedData['type'],
             'status' => 'pending',
-            'payment_gateway_reference' => $request->payment_gateway_reference,
+            'payment_gateway_reference' => $validatedData['payment_gateway_reference'],
             'transaction_date' => now(),
-            'payment_gateway' => $request->payment_gateway, // Store payment gateway
+            'payment_gateway' => $validatedData['payment_gateway'], // Store payment gateway
         ]);
 
         return response()->json([
