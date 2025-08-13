@@ -26,7 +26,7 @@ class TransactionController extends Controller
             ->get();
 
         return response()->json([
-            'status' => 'true',
+            'status' => true,
             'data' => $transactions->map(function ($transaction) {
                 return [
                     'trx_id' => $transaction->payment_gateway_reference,
