@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Flights\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class TransactionController extends Controller
@@ -21,7 +22,7 @@ class TransactionController extends Controller
         }
 
         // Fetch transactions for the user
-        $transactions = Transaction::where('user_id', $request->user_id)
+        $transactions = Transaction::where('user_id', $request->user_id ?? Auth::user()->id)
             ->where('type', 'wallet_topup') // Only fetch wallet_topup transactions
             ->get();
 
