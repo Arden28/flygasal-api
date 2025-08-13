@@ -27,6 +27,7 @@ return new class extends Migration
             $table->string('agency_city')->nullable();
             $table->string('agency_address')->nullable();
             $table->string('agency_logo')->nullable();
+            $table->string('agency_currency')->default('USD');
             $table->rememberToken();
             $table->timestamps();
         });
