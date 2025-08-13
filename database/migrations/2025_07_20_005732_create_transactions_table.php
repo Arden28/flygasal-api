@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id(); // Auto-incrementing ID
-            $table->foreignId('booking_id')->constrained()->onDelete('cascade'); // Foreign key to the bookings table
+            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade'); // Foreign key to the users table
+            $table->foreignId('booking_id')->nullable()->constrained()->onDelete('cascade'); // Foreign key to the bookings table
             $table->decimal('amount', 10, 2); // Amount of the transaction
             $table->string('currency', 3); // Currency of the transaction (e.g., "USD", "KES")
             $table->string('type'); // Type of transaction: e.g., 'payment', 'refund'

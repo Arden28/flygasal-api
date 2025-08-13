@@ -25,8 +25,17 @@ class User extends Authenticatable
         'name',
         'email',
         'phone_number',
-        'password',
-        'wallet_balance'
+        'phone_country_code',
+        'wallet_balance',
+        'is_active',
+        'agency_name',
+        'agency_license',
+        'agency_country',
+        'agency_city',
+        'agency_address',
+        'agency_logo',
+        'agency_currency',
+        'agency_markup',
     ];
 
     /**

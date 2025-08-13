@@ -64,14 +64,36 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         $user = $request->user();
 
-        return response()->json([
+        // Check if user is authenticated
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        // Build user data array with all fields
+        $userData = [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
-            'phone_number' => $user->phone_number,
-            'role' => $user->getRoleNames()->first(), // 'admin'
-        ]);
-    });
+            'phone_number' => $user->phone_number ?? 'N/A',
+            'email_verified_at' => $user->email_verified_at ? $user->email_verified_at->toDateTimeString() : 'Not verified',
+            'phone_verified_at' => $user->phone_verified_at ? $user->phone_verified_at->toDateTimeString() : 'Not verified',
+            'phone_country_code' => $user->phone_country_code ?? 'N/A',
+            'is_active' => $user->is_active,
+            'wallet_balance' => number_format($user->wallet_balance, 2, '.', ''),
+            'agency_name' => $user->agency_name ?? 'N/A',
+            'agency_license' => $user->agency_license ?? 'N/A',
+            'agency_country' => $user->agency_country ?? 'N/A',
+            'agency_city' => $user->agency_city ?? 'N/A',
+            'agency_address' => $user->agency_address ?? 'N/A',
+            'agency_logo' => $user->agency_logo ? asset($user->agency_logo) : 'N/A', // Convert to full URL if exists
+            'agency_currency' => $user->agency_currency ?? 'USD',
+            'agency_markup' => number_format($user->agency_markup, 2, '.', ''),
+            'role' => $user->getRoleNames()->first() ?? 'No role assigned', // Single role or fallback
+            'roles' => $user->getRoleNames()->toArray(), // Array of all roles
+        ];
+
+        return response()->json($userData);
+    })->middleware('auth');
 
     // User Management
     Route::apiResource('profile', ProfileController::class)->except(['index', 'store']);

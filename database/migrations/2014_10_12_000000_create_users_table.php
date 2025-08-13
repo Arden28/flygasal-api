@@ -24,10 +24,12 @@ return new class extends Migration
             $table->decimal('wallet_balance', 10, 2)->default(0);
             $table->string('agency_name')->nullable();
             $table->string('agency_license')->nullable();
+            $table->string('agency_country')->nullable();
             $table->string('agency_city')->nullable();
             $table->string('agency_address')->nullable();
             $table->string('agency_logo')->nullable();
             $table->string('agency_currency')->default('USD');
+            $table->decimal('agency_markup', 5, 2)->default(5.00);
             $table->rememberToken();
             $table->timestamps();
         });
