@@ -119,8 +119,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route::get('/bookings/{booking}', [BookingController::class, 'show']);
 
     // Transaction Management Routes
-    Route::post('transactions', [TransactionController::class, 'index']);
-    Route::post('transactions/add', [TransactionController::class, 'store']);
+    Route::post('transactions', [TransactionController::class, 'index'])->middleware('auth');;
+    Route::post('transactions/add', [TransactionController::class, 'store'])->middleware('auth');;
     Route::post('payment_gateways', [PaymentGatewayController::class, 'index']);
 
     // Admin Routes - Protected by 'manage-xxx' permissions

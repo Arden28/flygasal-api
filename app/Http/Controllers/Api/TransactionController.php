@@ -13,16 +13,16 @@ class TransactionController extends Controller
     public function index(Request $request)
     {
         // Validate API key and user_id
-        $validator = Validator::make($request->all(), [
-            'user_id' => 'required|exists:users,id',
-        ]);
+        // $validator = Validator::make($request->all(), [
+        //     'user_id' => 'required|exists:users,id',
+        // ]);
 
-        if ($validator->fails()) {
-            return response()->json(['status' => 'false', 'errors' => $validator->errors()], 422);
-        }
+        // if ($validator->fails()) {
+        //     return response()->json(['status' => 'false', 'errors' => $validator->errors()], 422);
+        // }
 
         // Fetch transactions for the user
-        $transactions = Transaction::where('user_id', $request->user_id ?? Auth::user()->id)
+        $transactions = Transaction::where('user_id', $request->user_id)
             ->where('type', 'wallet_topup') // Only fetch wallet_topup transactions
             ->get();
 
