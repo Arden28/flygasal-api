@@ -117,6 +117,7 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Logged in successfully.',
                 'user' => $user,
+                'role' => $user->getRoleNames()->first() ?? 'No role assigned', // Single role or fallback
                 'access_token' => $token,
                 'token_type' => 'Bearer',
             ]);
