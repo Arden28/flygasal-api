@@ -53,8 +53,13 @@ class UserController extends Controller
                 'email' => 'required|string|email|max:255|unique:users,email',
                 'phone' => 'nullable|string|max:16|unique:users,phone_number',
                 'password' => 'required|string|min:8', // No 'confirmed' needed for admin creation
-                'type' => 'nullable|string', // Role name
+                'type' => 'nullable|string|in:admin,agent,user', // Role name
                 'walletBalance' => 'nullable', // Initial Wallet Amount
+                'agency_name' => 'nullable|string|max:255',
+                'agency_license' => 'nullable|string|max:255',
+                'agency_city' => 'nullable|string|max:255',
+                'agency_address' => 'nullable|string|max:255',
+                'agency_logo' => 'nullable|image|mimes:png,jpg,jpeg,gif,svg|max:2048', // Optional file upload
             ]);
 
             $user = User::create([
@@ -63,6 +68,11 @@ class UserController extends Controller
                 'phone_number' => $validatedData['phone'],
                 'password' => Hash::make($validatedData['password']),
                 'wallet_balance' => $validatedData['walletBalance'],
+                'agency_name' => $validatedData['agency_name'],
+                'agency_license' => $validatedData['agency_license'],
+                'agency_city' => $validatedData['agency_city'],
+                'agency_address' => $validatedData['agency_address'],
+                'agency_logo' => $validatedData['agency_logo'],
                 'is_active' => true
             ]);
 

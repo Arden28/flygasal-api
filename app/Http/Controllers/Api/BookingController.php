@@ -295,7 +295,7 @@ class BookingController extends Controller
         return response()->json([
             'code' => $pkfareResponse['errorCode'],
             'message' => 'Booking retrieved successfully.',
-            'data' => $pkfareResponse['data'],
+            'booking' => $pkfareResponse['data'],
         ]);
     }
 

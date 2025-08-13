@@ -22,6 +22,11 @@ return new class extends Migration
             $table->string('password');
             $table->boolean('is_active')->default(false);
             $table->decimal('wallet_balance', 10, 2)->default(0);
+            $table->string('agency_name')->nullable();
+            $table->string('agency_license')->nullable();
+            $table->string('agency_city')->nullable();
+            $table->string('agency_address')->nullable();
+            $table->string('agency_logo')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
