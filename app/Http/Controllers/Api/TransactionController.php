@@ -46,17 +46,28 @@ class TransactionController extends Controller
         return response()->json([
             'status' => true,
             'data' => $transactions->map(function ($transaction) {
+                $type = $transaction->user
+                    ? 'wallet_topup'
+                    : ($transaction->booking ? 'booking' : null);
+
+                $name = $type === 'wallet_topup'
+                    ? optional($transaction->user)->name
+                    : optional(optional($transaction->booking)->user)->name;
+
                 return [
-                    'trx_id' => $transaction->payment_gateway_reference,
-                    'date' => $transaction->transaction_date->toDateString(),
-                    'amount' => $transaction->amount,
-                    'currency' => $transaction->currency,
-                    'payment_gateway' => $transaction->payment_gateway ?? 'bank', // Fallback if not set
-                    'status' => $transaction->status,
-                    'description' => null, // Not in schema, return null for compatibility
+                    'trx_id'         => $transaction->payment_gateway_reference,
+                    'date'           => $transaction->transaction_date->toDateString(),
+                    'amount'         => $transaction->amount,
+                    'currency'       => $transaction->currency,
+                    'payment_gateway'=> $transaction->payment_gateway ?? 'bank', // Fallback if not set
+                    'status'         => $transaction->status,
+                    'type'           => $type,
+                    'name'           => $name,
+                    'description'    => null, // Not in schema, return null for compatibility
                 ];
             }),
         ]);
+
     }
 
     /**
