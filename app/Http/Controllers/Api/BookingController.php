@@ -52,6 +52,7 @@ class BookingController extends Controller
         }
 
         return response()->json([
+            'status' => true,
             'message' => 'Bookings retrieved successfully.',
             'data' => $bookings,
         ]);

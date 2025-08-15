@@ -21,6 +21,20 @@ class TransactionController extends Controller
         //     return response()->json(['status' => 'false', 'errors' => $validator->errors()], 422);
         // }
 
+        if ($request->user()->hasRole('agent')) {
+            // Agents can only view their own wallet_topup transactions
+            $transactions = $request->user()
+                ->transactions()
+                ->where('type', 'wallet_topup')
+                ->latest()
+                ->paginate(20);
+        } else {
+            // Admins can view all wallet_topup transactions
+            $transactions = Transaction::where('type', 'wallet_topup')
+                ->latest()
+                ->paginate(10);
+        }
+
         // Fetch transactions for the user
         $transactions = Transaction::where('user_id', $request->user_id)
             ->where('type', 'wallet_topup') // Only fetch wallet_topup transactions
