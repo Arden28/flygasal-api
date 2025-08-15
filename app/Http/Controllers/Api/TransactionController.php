@@ -30,8 +30,11 @@ class TransactionController extends Controller
                 ->paginate(20);
         } else {
             // Admins can view all wallet_topup transactions
-            $transactions = Transaction::where('type', 'wallet_topup')
-                ->latest()
+            $transactions = Transaction::with([
+                'booking:id,order_num,status', // only needed booking fields
+                'user:id,name,email'           // only needed user fields
+            ])
+            ->latest()
                 ->paginate(10);
         }
 

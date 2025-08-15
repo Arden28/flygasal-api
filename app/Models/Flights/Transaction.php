@@ -2,6 +2,7 @@
 
 namespace App\Models\Flights;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +18,7 @@ class Transaction extends Model
      */
     protected $fillable = [
         'booking_id',
+        'user_id',
         'amount',
         'currency',
         'type',
@@ -44,5 +46,15 @@ class Transaction extends Model
     public function booking(): BelongsTo
     {
         return $this->belongsTo(Booking::class);
+    }
+
+    /**
+     * Get the user that the transaction belongs to.
+     *
+     * @return BelongsTo
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }
