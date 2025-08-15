@@ -12,36 +12,29 @@ class TransactionController extends Controller
 {
     public function index(Request $request)
     {
-        // Validate API key and user_id
-        // $validator = Validator::make($request->all(), [
-        //     'user_id' => 'required|exists:users,id',
-        // ]);
-
-        // if ($validator->fails()) {
-        //     return response()->json(['status' => 'false', 'errors' => $validator->errors()], 422);
-        // }
-
         if ($request->user()->hasRole('agent')) {
             // Agents can only view their own wallet_topup transactions
             $transactions = $request->user()
                 ->transactions()
+                ->with([
+                    'booking:id,order_num,status,user_id', // booking with its user_id
+                    'booking.user:id,name,email',          // booking's user
+                    'user:id,name,email'                   // transaction's user
+                ])
                 ->where('type', 'wallet_topup')
                 ->latest()
-                ->paginate(20);
+                ->get();
         } else {
             // Admins can view all wallet_topup transactions
             $transactions = Transaction::with([
-                'booking:id,order_num,status', // only needed booking fields
-                'user:id,name,email'           // only needed user fields
-            ])
-            ->latest()
-                ->paginate(10);
+                    'booking:id,order_num,status,user_id',
+                    'booking.user:id,name,email',
+                    'user:id,name,email'
+                ])
+                ->where('type', 'wallet_topup')
+                ->latest()
+                ->get();
         }
-
-        // Fetch transactions for the user
-        $transactions = Transaction::where('user_id', $request->user_id)
-            ->where('type', 'wallet_topup') // Only fetch wallet_topup transactions
-            ->get();
 
         return response()->json([
             'status' => true,
@@ -55,20 +48,20 @@ class TransactionController extends Controller
                     : optional(optional($transaction->booking)->user)->name;
 
                 return [
-                    'trx_id'         => $transaction->payment_gateway_reference,
-                    'date'           => $transaction->transaction_date->toDateString(),
-                    'amount'         => $transaction->amount,
-                    'currency'       => $transaction->currency,
-                    'payment_gateway'=> $transaction->payment_gateway ?? 'bank', // Fallback if not set
-                    'status'         => $transaction->status,
-                    'type'           => $type,
-                    'name'           => $name,
-                    'description'    => null, // Not in schema, return null for compatibility
+                    'trx_id'          => $transaction->payment_gateway_reference,
+                    'date'            => $transaction->transaction_date->toDateString(),
+                    'amount'          => $transaction->amount,
+                    'currency'        => $transaction->currency,
+                    'payment_gateway' => $transaction->payment_gateway ?? 'bank',
+                    'status'          => $transaction->status,
+                    'type'            => $type,
+                    'name'            => $name,
+                    'description'     => null,
                 ];
             }),
         ]);
-
     }
+
 
     /**
      * Store a newly created user in storage.
