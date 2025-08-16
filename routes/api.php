@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\PaymentGatewayController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\WebhookController;
 use App\Models\Flights\Airport;
 use App\Models\Settings\Setting;
 use App\Models\User;
@@ -35,6 +36,13 @@ use Illuminate\Support\Facades\Route;
 // These routes can be accessed by anyone.
 Route::get('/status', function () {
     return response()->json(['message' => 'API is up and running!', 'version' => '1.0.0']);
+});
+
+Route::prefix('pkfare')->group(function () {
+    Route::post('/ticket-issuance-notify-v2',      [WebhookController::class, 'ticketIssuanceNotify']);   // TicketIssuanceNotify
+    Route::post('/refund-result',      [WebhookController::class, 'refundResultNotify']);     // RefundResultNotify
+    Route::post('/reimbursed-result',  [WebhookController::class, 'reimbursedResultNotify']); // ReimbursedResultNotify
+    Route::post('/schedule-change',    [WebhookController::class, 'scheduleChangeNotify']);   // ScheduleChangeNotify
 });
 
 // Authentication Routes
@@ -119,8 +127,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route::get('/bookings/{booking}', [BookingController::class, 'show']);
 
     // Transaction Management Routes
-    Route::get('transactions', [TransactionController::class, 'index'])->middleware('auth');;
-    Route::post('transactions/add', [TransactionController::class, 'store'])->middleware('auth');;
+    Route::get('transactions', [TransactionController::class, 'index']);
+    Route::post('transactions/add', [TransactionController::class, 'store']);
+    Route::post('transactions/approve', [TransactionController::class, 'approveOrReject']);
     Route::post('payment_gateways', [PaymentGatewayController::class, 'index']);
 
     // Admin Routes - Protected by 'manage-xxx' permissions

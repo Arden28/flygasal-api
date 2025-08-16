@@ -103,6 +103,7 @@ class TransactionController extends Controller
         return response()->json([
             'status' => 'true',
             'data' => [
+                'id' => $transaction->id,
                 'trx_id' => $transaction->payment_gateway_reference,
                 'date' => $transaction->transaction_date->toDateString(),
                 'amount' => $transaction->amount,
@@ -134,6 +135,7 @@ class TransactionController extends Controller
             'transaction_id' => 'required|exists:transactions,id',
             'amount' => 'required|numeric|min:0',
             'status' => 'required|string|in:approved,rejected',
+            'note' => 'nullable|string',
         ]);
         $transaction = Transaction::find($validatedData['transaction_id']);
         if (!$transaction) {
