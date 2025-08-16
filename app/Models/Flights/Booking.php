@@ -12,53 +12,52 @@ class Booking extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
-    protected $fillable = [
-        'user_id',
-        'order_num',
-        'pnr',
-        'solution_id',
-        'fare_type',
-        'currency',
-        'adt_fare',
-        'adt_tax',
-        'chd_fare',
-        'chd_tax',
-        'infants',
-        'adults',
-        'children',
-        'plating_carrier',
-        'baggage_info',
-        'flights',
-        'segments',
-        'passengers',
-        'agent_fee',
-        'total_amount',
-        'contact_name',
-        'contact_email',
-        'contact_phone',
-        'booking_date',
-        'status'
+
+    protected $guarded = [];
+
+    protected $casts = [
+        'booking_date'          => 'datetime',
+        'last_void_time'        => 'datetime',
+        'ticket_issued_payload' => 'array',
+        'baggage_info'          => 'array',
+        'flights'               => 'array',
+        'segments'              => 'array',
+        'passengers'            => 'array',
+        'permit_void'           => 'boolean',
+        'adt_fare'              => 'decimal:2',
+        'adt_tax'               => 'decimal:2',
+        'chd_fare'              => 'decimal:2',
+        'chd_tax'               => 'decimal:2',
+        'total_amount'          => 'decimal:2',
+        'total_fare'            => 'decimal:2',
+        'total_tax'             => 'decimal:2',
+        'void_service_fee'      => 'decimal:2',
+        'agent_fee'             => 'decimal:2',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'baggage_info' => 'array',
-        'flights' => 'array',
-        'segments' => 'array',
-        'passengers' => 'array',
-        'booking_date' => 'datetime',
-        'agent_fee' => 'decimal:2',
-        'total_price' => 'decimal:2',
-    ];
+    // Relationships
+    public function passengers()
+    {
+        return $this->hasMany(BookingPassenger::class);
+    }
+
+    public function segments()
+    {
+        return $this->hasMany(BookingSegment::class);
+    }
+
+    // Convenience
+    public function segmentTickets()
+    {
+        return $this->hasManyThrough(
+            BookingSegmentTicket::class,
+            BookingSegment::class,
+            'booking_id',       // FK on segments
+            'booking_segment_id',
+            'id',
+            'id'
+        );
+    }
 
     /**
      * Get the user that owns the booking.

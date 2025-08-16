@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\FlightController;
 use App\Http\Controllers\Api\PaymentGatewayController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\TransactionController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\WebhookController;
 use App\Models\Flights\Airport;
@@ -134,6 +135,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Admin Routes - Protected by 'manage-xxx' permissions
     Route::prefix('admin')->group(function () {
+
+        // Dashboard
+        Route::get('/dashboard/summary', [DashboardController::class, 'summary']);
+        Route::get('/dashboard/sales',   [DashboardController::class, 'sales']);
+
         // Airport Management
         Route::apiResource('airports', AirportController::class); // Provides index, store, show, update, destroy
 

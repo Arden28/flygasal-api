@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Flights\Booking;
+use App\Models\Flights\BookingPassenger;
+use App\Models\Flights\BookingSegment;
 use App\Models\Flights\Transaction;
 use App\Services\PKfareService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -60,65 +63,56 @@ class BookingController extends Controller
 
     /**
      * Store a newly created booking in storage.
-     * This involves calling the PKfare API and saving to the local DB.
-     *
-     * @param Request $request The incoming HTTP request with booking details.
-     * @return \Illuminate\Http\JsonResponse
+     * Calls PKfare API and saves to local DB.
      */
     public function store(Request $request)
     {
-        // Use a database transaction to ensure atomicity.
-        // If PKfare API call fails or local save fails, everything is rolled back.
         DB::beginTransaction();
         try {
-            // 1. Validate incoming request data for booking
+            // 1. Validate incoming data
             $validatedData = $request->validate([
-                'selectedFlight' => 'required|array', // The flight object returned from PKfare search
-                // 'selectedFlight.fareSourceCode' => 'nullable|string', // A critical identifier for PKfare
-                'solutionId' => 'required|string', // A critical identifier for PKfare
-                // ... other necessary flight details from selectedFlight
+                'selectedFlight' => 'required|array',
+                'solutionId' => 'required|string',
                 'passengers' => 'required|array|min:1',
                 'passengers.*.firstName' => 'required|string|max:255',
                 'passengers.*.lastName' => 'required|string|max:255',
-                'passengers.*.type' => 'required|string|in:ADT,CHD,INF', // Adult, Child, Infant
+                'passengers.*.type' => 'required|string|in:ADT,CHD,INF',
                 'passengers.*.dob' => 'required|date_format:Y-m-d',
                 'passengers.*.gender' => 'required|string|in:Male,Female',
                 'passengers.*.passportNumber' => 'nullable|string|max:255',
-                'passengers.*.passportExpiry' => 'nullable|date_format:Y-m-d|after:today',
+                'passengers.*.passportExpiry' => 'nullable|date_format:Y-m-d|after_or_equal:today',
+                'passengers.*.nationality' => 'nullable|string|size:2',
                 'contactName' => 'required|string|max:155',
                 'contactEmail' => 'required|email|max:255',
                 'contactPhone' => 'required|string|max:20',
                 'totalPrice' => 'required|numeric|min:0',
                 'currency' => 'required|string|size:3',
-                'agent_fee' => 'nullable'
+                'agent_fee' => 'nullable|numeric|min:0',
             ]);
 
-            $selectedFlight = $validatedData['selectedFlight'];
-            // Log::info('Selected Flight: ', $validatedData['selectedFlight']);
+            // 2. Auth check
+            $user = $request->user();
+            if (!$user) {
+                DB::rollBack();
+                return response()->json(['error' => 'Unauthenticated'], 401);
+            }
 
-            // 2. Prepare booking details for PKfareService
+            // 3. Prepare booking details
             $pkfareBookingDetails = [
-                'selectedFlight' => $selectedFlight,
+                'selectedFlight' => $validatedData['selectedFlight'],
                 'solutionId' => $validatedData['solutionId'],
                 'passengers' => $validatedData['passengers'],
                 'contactInfo' => [
-                    'name' => $validatedData['contactName'],
+                    'name'  => $validatedData['contactName'],
                     'email' => $validatedData['contactEmail'],
                     'phone' => $validatedData['contactPhone'],
                 ],
-                // PKfare might require specific payment details here.
-                // This is a placeholder for actual payment integration.
-                // 'paymentMethod' => 'credit_card',
-                // 'paymentToken' => $validatedData['paymentToken'],
             ];
 
-            // 3. Call PKfare API
-            // This is a critical step where the actual booking is made with the airline via PKfare.
-            $pkfareResponse = $this->pkfareService->createBooking($pkfareBookingDetails);
+            // 4. Call PKfare
+            $pkfareResponse = (array) $this->pkfareService->createBooking($pkfareBookingDetails);
+            Log::info('PKFare Response: ' . json_encode($pkfareResponse));
 
-            Log::info('PKFare Response: ', $pkfareResponse);
-
-            // Error map (put at top or in a helper)
             $errorMessages = [
                 'S001' => 'System error.',
                 'B002' => 'Partner ID does not exist.',
@@ -126,96 +120,136 @@ class BookingController extends Controller
                 'B035' => 'Too many requests. Please try again later.',
                 'P001' => 'Invalid input data.',
                 'P002' => 'Missing required fields.',
-                'P006' => 'Invalid parameters. Please review your data.',
+                'P006' => 'Invalid parameters.',
                 '0307' => 'Seats are no longer available.',
                 'B005' => 'Pricing expired. Please search again.',
                 'B007' => 'Flight segment is no longer valid.',
                 'B008' => 'Flight changed. Please reselect.',
-                'B011' => 'Fare is unavailable. Try another flight.',
-                'B017' => 'Price has changed. Please confirm again.',
-                'B029' => 'Duplicate reservation found. Please use the previous order or cancel it.',
-                'B068' => 'Flight segment mismatch. Please reselect your flights.',
-                // Add more as needed...
+                'B011' => 'Fare is unavailable.',
+                'B017' => 'Price has changed.',
+                'B029' => 'Duplicate reservation found.',
+                'B068' => 'Flight segment mismatch.',
             ];
 
-            // 4. Check API response
+            // 5. Handle PKfare errors
             $errorCode = $pkfareResponse['errorCode'] ?? null;
-
             if ($errorCode !== '0') {
+                DB::rollBack();
                 $message = $errorMessages[$errorCode] ?? ($pkfareResponse['errorMsg'] ?? 'Booking failed.');
-
+                Log::warning("PKfare booking failed: {$errorCode} - {$message}");
                 return response()->json([
                     'success' => false,
-                    'code' => $errorCode,
+                    'code'    => $errorCode,
                     'message' => $message,
-                ], 400); // Bad request or adjust to suit
+                ], 400);
             }
 
-            // 5. Save booking details to local database
-            $totalAmount = $pkfareResponse['data']['solution']['adtFare'] + $pkfareResponse['data']['solution']['adtTax'] + $pkfareResponse['data']['solution']['chdFare'] + $pkfareResponse['data']['solution']['chdTax'];
+            // 6. Extract data
+            $data     = $pkfareResponse['data'] ?? [];
+            $solution = $data['solution'] ?? [];
 
-            // 6. Ensure the user is authentificated
-            $user = $request->user();
+            $adtFare = (float)($solution['adtFare'] ?? 0);
+            $adtTax  = (float)($solution['adtTax']  ?? 0);
+            $chdFare = (float)($solution['chdFare'] ?? 0);
+            $chdTax  = (float)($solution['chdTax']  ?? 0);
+            $totalAmount = $adtFare + $adtTax + $chdFare + $chdTax;
 
-            if (!$user) {
-                return response()->json(['error' => 'Unauthenticated'], 401);
+            // 7. Save booking
+            $booking = Booking::create([
+                'user_id'         => $user->id,
+                'order_num'       => $data['orderNum'] ?? null,
+                'pnr'             => $data['pnr'] ?? null,
+                'solution_id'     => $solution['solutionId'] ?? $validatedData['solutionId'],
+                'fare_type'       => $solution['fareType'] ?? null,
+                'currency'        => $solution['currency'] ?? $validatedData['currency'],
+                'adt_fare'        => $adtFare,
+                'adt_tax'         => $adtTax,
+                'chd_fare'        => $chdFare,
+                'chd_tax'         => $chdTax,
+                'infants'         => (int)($solution['infants'] ?? 0),
+                'adults'          => (int)($solution['adults'] ?? 0),
+                'children'        => (int)($solution['children'] ?? 0),
+                'plating_carrier' => $solution['platingCarrier'] ?? null,
+                'baggage_info'    => $solution['baggageMap'] ?? null,
+                'flights'         => $data['flights'] ?? null,
+                'segments'        => $data['segments'] ?? null,
+                'passengers'      => $validatedData['passengers'],
+                'agent_fee'       => (float)($validatedData['agent_fee'] ?? 0),
+                'total_amount'    => $totalAmount,
+                'contact_name'    => $validatedData['contactName'],
+                'contact_email'   => $validatedData['contactEmail'],
+                'contact_phone'   => $validatedData['contactPhone'],
+                'status'          => 'pending',
+                'payment_status'  => 'unpaid',
+                'booking_date'    => now(),
+            ]);
+
+            // 8. Save passengers
+            foreach ($validatedData['passengers'] as $i => $p) {
+                BookingPassenger::create([
+                    'booking_id'      => $booking->id,
+                    'passenger_index' => $i + 1,
+                    'psg_type'        => $p['type'],
+                    'sex'             => $p['gender'] === 'Male' ? 'M' : 'F',
+                    'birthday'        => $p['dob'],
+                    'first_name'      => strtoupper($p['firstName']),
+                    'last_name'       => strtoupper($p['lastName']),
+                    'nationality'     => strtoupper($p['nationality'] ?? ''),
+                    'card_type'       => !empty($p['passportNumber']) ? 'P' : null,
+                    'card_num'        => $p['passportNumber'] ?? null,
+                    'card_expired_date' => $p['passportExpiry'] ?? null,
+                ]);
             }
 
-            $bookingData = [
-                'user_id'          => $user->id,
-                'order_num'        => $pkfareResponse['data']['orderNum'],
-                'pnr'              => $pkfareResponse['data']['pnr'],
-                'solution_id'        => $pkfareResponse['data']['solution']['solutionId'],
-                'fare_type'        => $pkfareResponse['data']['solution']['fareType'],
-                'currency'         => $pkfareResponse['data']['solution']['currency'],
-                'adt_fare'         => $pkfareResponse['data']['solution']['adtFare'],
-                'adt_tax'          => $pkfareResponse['data']['solution']['adtTax'],
-                'chd_fare'         => $pkfareResponse['data']['solution']['chdFare'],
-                'chd_tax'          => $pkfareResponse['data']['solution']['chdTax'],
-                'infants'          => $pkfareResponse['data']['solution']['infants'],
-                'adults'           => $pkfareResponse['data']['solution']['adults'],
-                'children'         => $pkfareResponse['data']['solution']['children'],
-                'plating_carrier'  => $pkfareResponse['data']['solution']['platingCarrier'],
-                'baggage_info'     => $pkfareResponse['data']['solution']['baggageMap'],
-                'flights'          => $pkfareResponse['data']['flights'],
-                'segments'         => $pkfareResponse['data']['segments'],
-                'passengers'       => $validatedData['passengers'],
-                'agent_fee'     => $validatedData['agent_fee'] ?? 0,
-                'total_amount'     => $totalAmount,
-                'contact_name' => $validatedData['contactName'],
-                'contact_email' => $validatedData['contactEmail'],
-                'contact_phone' => $validatedData['contactPhone'],
-                'booking_date' => now(),
-            ];
-            $booking = Booking::create($bookingData);
+            // 9. Save segments
+            if (!empty($data['segments'])) {
+                foreach ($data['segments'] as $idx => $seg) {
+                    $departureDateTime = !empty($seg['strDepartureDate']) && !empty($seg['strDepartureTime'])
+                        ? Carbon::parse($seg['strDepartureDate'] . ' ' . $seg['strDepartureTime'])
+                        : null;
 
-            DB::commit(); // Commit the database transaction
+                    $arrivalDateTime = !empty($seg['strArrivalDate']) && !empty($seg['strArrivalTime'])
+                        ? Carbon::parse($seg['strArrivalDate'] . ' ' . $seg['strArrivalTime'])
+                        : null;
 
-            Log::info("BookingDetails: {$booking->order_num}");
+                    BookingSegment::updateOrCreate(
+                        ['booking_id' => $booking->id, 'segment_no' => $idx + 1],
+                        [
+                            'airline'            => $seg['airline'] ?? null,
+                            'equipment'          => $seg['equipment'] ?? null,
+                            'departure_terminal' => $seg['departureTerminal'] ?? null,
+                            'arrival_terminal'   => $seg['arrivalTerminal'] ?? null,
+                            'departure_date'     => $departureDateTime,
+                            'arrival_date'       => $arrivalDateTime,
+                            'departure'          => $seg['departure'] ?? null,
+                            'arrival'            => $seg['arrival'] ?? null,
+                            'flight_num'         => $seg['flightNum'] ?? null,
+                            'cabin_class'        => $seg['cabinClass'] ?? null,
+                            'booking_code'       => $seg['bookingCode'] ?? null,
+                        ]
+                    );
+                }
+            }
+
+            DB::commit();
+            Log::info("Booking stored successfully: {$booking->order_num}");
 
             return response()->json([
-                'message' => 'Booking created successfully.',
-                'errorMsg' => 'Booking created successfully',
-                'errorCode' => 0,
-                'booking' => $booking,
-            ], 201); // Created
+                'message'   => 'Booking created successfully.',
+                'booking'   => $booking->load(['passengers', 'segments']),
+            ], 201);
 
         } catch (ValidationException $e) {
-            DB::rollBack(); // Rollback if validation fails
-            Log::error('Booking creation validation failed: ' . json_encode($e->errors()));
-            return response()->json([
-                'message' => 'Validation Error',
-                'errors' => $e->errors(),
-            ], 422);
+            DB::rollBack();
+            Log::error('Booking validation failed: ' . json_encode($e->errors()));
+            return response()->json(['message' => 'Validation Error', 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            DB::rollBack(); // Rollback if any other exception occurs
+            DB::rollBack();
             Log::error('Booking creation failed: ' . $e->getMessage(), ['exception' => $e]);
-            return response()->json([
-                'message' => 'Failed to create booking. Please try again later.',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(['message' => 'Failed to create booking.', 'error' => $e->getMessage()], 500);
         }
     }
+
 
     /**
      * Display the specified booking.

@@ -7,6 +7,7 @@
     "require": {
         "php": "^8.1",
         "arden28/guardian": "^1.1",
+        "doctrine/dbal": "*",
         "guzzlehttp/guzzle": "^7.2",
         "laravel/framework": "^10.0",
         "laravel/sanctum": "3.3",
