@@ -122,6 +122,14 @@ class TransactionController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
     public function approveOrReject(Request $request){
+
+        if (! $request->user()->hasRole('admin')) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Unauthorized: Only admins can approve or reject transactions',
+            ], 403);
+        }
+
         $validatedData = $request->validate([
             'transaction_id' => 'required|exists:transactions,id',
             'amount' => 'required|numeric|min:0',
