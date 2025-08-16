@@ -53,6 +53,7 @@ class TransactionController extends Controller
                         : optional(optional($transaction->booking)->user)->email;
 
                     return [
+                        'id' => $transaction->id,
                         'trx_id'          => $transaction->payment_gateway_reference,
                         'date'            => $transaction->transaction_date->toDateString(),
                         'amount'          => $transaction->amount,
@@ -103,7 +104,6 @@ class TransactionController extends Controller
         return response()->json([
             'status' => 'true',
             'data' => [
-                'id' => $transaction->id,
                 'trx_id' => $transaction->payment_gateway_reference,
                 'date' => $transaction->transaction_date->toDateString(),
                 'amount' => $transaction->amount,
