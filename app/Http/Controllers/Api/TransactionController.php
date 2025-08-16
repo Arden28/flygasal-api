@@ -55,7 +55,7 @@ class TransactionController extends Controller
                     return [
                         'id' => $transaction->id,
                         'trx_id'          => $transaction->payment_gateway_reference,
-                        'booking_num'     => $transaction->booking->order_num ?? null,
+                        'booking'         => $transaction->booking ?? [],
                         'date'            => $transaction->transaction_date->toDateString(),
                         'amount'          => $transaction->amount,
                         'currency'        => $transaction->currency,
