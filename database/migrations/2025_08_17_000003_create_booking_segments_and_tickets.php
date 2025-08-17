@@ -61,10 +61,10 @@ return new class extends Migration
             $table->timestamps();
 
             // Shorter custom index name to avoid MySQL's 64-char limit
-            $table->unique(
-                ['booking_segment_id','booking_passenger_id'],
-                'segment_passenger_unique'
-            );
+            // $table->unique(
+            //     ['booking_segment_id','booking_passenger_id'],
+            //     'segment_passenger_unique'
+            // );
         });
 
     }
