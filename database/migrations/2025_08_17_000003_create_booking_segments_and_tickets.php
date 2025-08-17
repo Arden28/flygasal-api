@@ -56,12 +56,17 @@ return new class extends Migration
             $table->foreignId('booking_segment_id')->constrained('booking_segments')->cascadeOnDelete();
             $table->foreignId('booking_passenger_id')->constrained('booking_passengers')->cascadeOnDelete();
 
-            $table->string('ticket_num', 64); // exact ticket number used on this segment
+            $table->string('ticket_num', 64);
 
             $table->timestamps();
 
-            $table->unique(['booking_segment_id','booking_passenger_id']);
+            // Shorter custom index name to avoid MySQL's 64-char limit
+            $table->unique(
+                ['booking_segment_id','booking_passenger_id'],
+                'segment_passenger_unique'
+            );
         });
+
     }
 
     public function down(): void
