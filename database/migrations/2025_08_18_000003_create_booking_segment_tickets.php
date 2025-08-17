@@ -11,18 +11,18 @@ return new class extends Migration
         // Segment ↔ Passenger ticket mapping (ticketNums[].passengerIndex & ticketNum)
         Schema::create('booking_segment_tickets', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('booking_segment_id')->constrained('booking_segments')->cascadeOnDelete();
-            $table->foreignId('booking_passenger_id')->constrained('booking_passengers')->cascadeOnDelete();
+            $table->unsignedBigInteger('booking_segment_id');
+            $table->unsignedBigInteger('booking_passenger_id');
 
             $table->string('ticket_num', 64);
 
             $table->timestamps();
 
             // Shorter custom index name to avoid MySQL's 64-char limit
-            $table->unique(
-                ['booking_segment_id','booking_passenger_id'],
-                'segment_passenger_unique'
-            );
+            // $table->unique(
+            //     ['booking_segment_id','booking_passenger_id'],
+            //     'segment_passenger_unique'
+            // );
         });
 
     }
