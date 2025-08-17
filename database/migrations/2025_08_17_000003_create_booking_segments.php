@@ -49,18 +49,6 @@ return new class extends Migration
             $table->unique(['booking_id','segment_no']);
         });
 
-
-        // Segment ↔ Passenger ticket mapping (ticketNums[].passengerIndex & ticketNum)
-        Schema::create('booking_segment_tickets', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('booking_segment_id')->constrained('booking_segments')->cascadeOnDelete();
-            $table->foreignId('booking_passenger_id')->constrained('booking_passengers')->cascadeOnDelete();
-
-            $table->string('ticket_num', 64);
-
-            $table->timestamps();
-        });
-
     }
 
     public function down(): void
