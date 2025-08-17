@@ -59,19 +59,12 @@ return new class extends Migration
             $table->string('ticket_num', 64);
 
             $table->timestamps();
-
-            // Shorter custom index name to avoid MySQL's 64-char limit
-            // $table->unique(
-            //     ['booking_segment_id','booking_passenger_id'],
-            //     'segment_passenger_unique'
-            // );
         });
 
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('booking_segment_tickets');
         Schema::dropIfExists('booking_segments');
     }
 };
