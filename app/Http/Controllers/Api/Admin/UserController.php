@@ -68,11 +68,11 @@ class UserController extends Controller
                 'phone_number' => $validatedData['phone'],
                 'password' => Hash::make($validatedData['password']),
                 'wallet_balance' => $validatedData['walletBalance'],
-                'agency_name' => $validatedData['agency_name'],
-                'agency_license' => $validatedData['agency_license'],
-                'agency_city' => $validatedData['agency_city'],
-                'agency_address' => $validatedData['agency_address'],
-                'agency_logo' => $validatedData['agency_logo'],
+                'agency_name' => $validatedData['agency_name'] ?? null,
+                'agency_license' => $validatedData['agency_license'] ?? null,
+                'agency_city' => $validatedData['agency_city'] ?? null,
+                'agency_address' => $validatedData['agency_address'] ?? null,
+                'agency_logo' => $validatedData['agency_logo'] ?? null,
                 'is_active' => true
             ]);
 
