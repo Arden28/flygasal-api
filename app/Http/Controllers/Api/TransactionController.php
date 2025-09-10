@@ -124,7 +124,7 @@ class TransactionController extends Controller
      *
      * Validates the request, checks the user's wallet balance,
      * creates a transaction if sufficient funds exist,
-     * deducts the balance, and marks the booking as paid.
+     * deducts the balance, and marks the booking as paid (by order_num).
      *
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -134,7 +134,7 @@ class TransactionController extends Controller
         // Validate incoming request
         $validated = $request->validate([
             'user_id'   => 'nullable|exists:users,id', // Optional, defaults to authenticated user
-            'booking_id'=> 'required|exists:bookings,id', // Booking to be paid
+            'order_num'=> 'required|exists:bookings,order_num', // Booking to be paid
             'type'      => 'required|string|in:booking_payment',
             'amount'    => 'required|numeric|min:0.01',
             'currency'  => 'required|string|size:3',
@@ -163,10 +163,13 @@ class TransactionController extends Controller
             // Deduct wallet balance
             $user->decrement('wallet_balance', $validated['amount']);
 
+            // Retrieve booking by order_num
+            $booking = Booking::where('order_num', $validated['order_num'])->firstOrFail();
+
             // Create transaction
             $transaction = Transaction::create([
                 'user_id'    => $user->id,
-                'booking_id' => $validated['booking_id'],
+                'booking_id' => $booking->id,
                 'amount'     => $validated['amount'],
                 'currency'   => strtoupper($validated['currency']),
                 'type'       => $validated['type'],
@@ -177,7 +180,6 @@ class TransactionController extends Controller
             ]);
 
             // Update booking payment status
-            $booking = Booking::findOrFail($validated['booking_id']);
             $booking->update([
                 'payment_status' => 'paid',
             ]);
