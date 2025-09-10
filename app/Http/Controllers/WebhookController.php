@@ -13,6 +13,10 @@ class WebhookController extends Controller
     {
         $expected = config('pkfare.webhook_token');
         $given    = $request->header('X-Pkfare-Token');
+        
+        // Debug
+        Log::info('The webhook was initiated!');
+
         abort_unless($expected && hash_equals($expected, (string)$given), Response::HTTP_FORBIDDEN, 'Invalid webhook token.');
     }
 

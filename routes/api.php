@@ -130,6 +130,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Transaction Management Routes
     Route::get('transactions', [TransactionController::class, 'index']);
     Route::post('transactions/add', [TransactionController::class, 'store']);
+    Route::post('transactions/pay', [TransactionController::class, 'walletPay']);
     Route::post('transactions/approve', [TransactionController::class, 'approveOrReject']);
     Route::post('payment_gateways', [PaymentGatewayController::class, 'index']);
 

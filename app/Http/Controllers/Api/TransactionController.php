@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Flights\Booking;
 use App\Models\Flights\Transaction;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Throwable;
 
 class TransactionController extends Controller
 {
@@ -115,6 +118,97 @@ class TransactionController extends Controller
             'message' => 'Deposit request submitted successfully',
         ], 201);
     }
+
+    /**
+     * Handle payment using user's wallet balance.
+     *
+     * Validates the request, checks the user's wallet balance,
+     * creates a transaction if sufficient funds exist,
+     * deducts the balance, and marks the booking as paid.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function walletPay(Request $request)
+    {
+        // Validate incoming request
+        $validated = $request->validate([
+            'user_id'   => 'nullable|exists:users,id', // Optional, defaults to authenticated user
+            'booking_id'=> 'required|exists:bookings,id', // Booking to be paid
+            'type'      => 'required|string|in:booking_payment',
+            'amount'    => 'required|numeric|min:0.01',
+            'currency'  => 'required|string|size:3',
+            'payment_gateway' => 'required|string',
+        ]);
+
+        // Resolve user
+        $user = $validated['user_id']
+            ? User::findOrFail($validated['user_id'])
+            : Auth::user();
+
+        // Check wallet balance
+        if ($user->wallet_balance < $validated['amount']) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Insufficient wallet balance.',
+            ], 422);
+        }
+
+        // Generate unique payment reference
+        $paymentReference = strtoupper(uniqid('WALLET-'));
+
+        DB::beginTransaction();
+
+        try {
+            // Deduct wallet balance
+            $user->decrement('wallet_balance', $validated['amount']);
+
+            // Create transaction
+            $transaction = Transaction::create([
+                'user_id'    => $user->id,
+                'booking_id' => $validated['booking_id'],
+                'amount'     => $validated['amount'],
+                'currency'   => strtoupper($validated['currency']),
+                'type'       => $validated['type'],
+                'status'     => 'completed', // now immediately completed
+                'payment_gateway_reference' => $paymentReference,
+                'transaction_date' => now(),
+                'payment_gateway' => $validated['payment_gateway'],
+            ]);
+
+            // Update booking payment status
+            $booking = Booking::findOrFail($validated['booking_id']);
+            $booking->update([
+                'payment_status' => 'paid',
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'data' => [
+                    'trx_id'         => $transaction->payment_gateway_reference,
+                    'date'           => $transaction->transaction_date->toDateString(),
+                    'amount'         => $transaction->amount,
+                    'currency'       => $transaction->currency,
+                    'payment_gateway'=> $transaction->payment_gateway,
+                    'status'         => $transaction->status,
+                ],
+                'message' => 'Wallet payment completed and booking updated successfully.',
+            ], 201);
+
+        } catch (Throwable $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Payment failed. Please try again.',
+                'error'   => $e->getMessage(), // log in prod instead of exposing
+            ], 500);
+        }
+    }
+
+
 
     /**
      * Approve or reject a transaction.
