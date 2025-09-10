@@ -448,7 +448,7 @@ class BookingController extends Controller
         // Validate request upfront (fail fast)
         $validatedData = $request->validate([
             'orderNum' => 'required|string|exists:bookings,order_num', // must exist in bookings table
-            'pnr'      => 'required|string|unique:bookings,pnr',       // must not duplicate existing PNR
+            'pnr'      => 'required|string|exists:bookings,pnr',       // must not duplicate existing PNR
             'contact'  => 'required|array',                            // must contain contact info
             'contact.name'  => 'required|string',
             'contact.email' => 'required|email',
