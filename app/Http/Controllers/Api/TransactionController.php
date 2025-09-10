@@ -176,7 +176,7 @@ class TransactionController extends Controller
                 'status'     => 'completed', // now immediately completed
                 'payment_gateway_reference' => $paymentReference,
                 'transaction_date' => now(),
-                'payment_gateway' => $validated['payment_gateway'],
+                'description' => $validated['payment_gateway'],
             ]);
 
             // Update booking payment status

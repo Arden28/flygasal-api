@@ -18,7 +18,7 @@ return new class extends Migration
             $table->decimal('amount', 10, 2); // Amount of the transaction
             $table->string('currency', 3)->default('USD'); // Currency of the transaction (e.g., "USD", "KES")
             $table->string('type'); // Type of transaction: e.g., 'payment', 'refund','wallet_topup'
-            $table->text('description')->nullable(); // Type of transaction: e.g., 'payment', 'refund','wallet_topup'
+            $table->text('description')->nullable(); // Type of transaction: e.g., 'payment', 'refund','wallet_topup', 'wallet_balance'
             $table->string('status')->default('pending'); // Transaction status: e.g., 'pending', 'completed', 'failed'
             $table->string('payment_gateway_reference')->nullable(); // Reference ID from the payment gateway
             $table->timestamp('transaction_date')->useCurrent(); // Date and time the transaction occurred
