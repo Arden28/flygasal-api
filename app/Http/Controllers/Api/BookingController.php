@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 // The BookingController handles the creation, viewing, and cancellation of flight bookings.
 // It interacts with the PKfareService for external API calls and
@@ -428,6 +429,146 @@ class BookingController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Handle ticketing for a given booking.
+     *
+     * Flow:
+     *  1. Validate incoming request payload
+     *  2. Perform order pricing via PKFare
+     *  3. If pricing is valid, attempt ticketing
+     *  4. Handle any provider errors gracefully
+     *  5. Update booking record and commit transaction
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function ticketOrder(Request $request)
+    {
+        // Validate request upfront (fail fast)
+        $validatedData = $request->validate([
+            'orderNum' => 'required|string|exists:bookings,order_num', // must exist in bookings table
+            'pnr'      => 'required|string|unique:bookings,pnr',       // must not duplicate existing PNR
+            'contact'  => 'required|array',                            // must contain contact info
+            'contact.name'  => 'required|string',
+            'contact.email' => 'required|email',
+            'contact.telNum'=> 'nullable|string',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            // --- Step 1: Perform order pricing ---
+            $pkfareResponse = $this->pkfareService->orderPricing($validatedData['orderNum']);
+            $errorCode = $pkfareResponse['errorCode'] ?? null;
+
+            // Centralized error mapping (consider moving to config/constants)
+            $pricingErrorMessages = [
+                'S001' => 'System error',
+                '310'  => 'Retrieve PNR failed, please try again.',
+                'B002' => 'PartnerID does not exist',
+                'B003' => 'Illegal sign. Please check your signature',
+                'B009' => 'Order status is invalid',
+                'B010' => 'The order was not found.',
+                'B026' => 'Latest ticketing time will be expired within 1 hour.',
+                'B101' => 'Supplier is offline.',
+                'B102' => 'Segment status is invalid.',
+                'B103' => 'No airline PNR exist. Please try again.',
+                'B104' => 'Flight No. mismatch between PNR and order.',
+                'B105' => 'Passenger No. mismatch between PNR and order.',
+                'B106' => 'PNR has no filed fare.',
+                'B107' => 'Fare changed, and order update failed.',
+                'B108' => 'Supplier day rollover — fare not guaranteed.',
+                'B109' => 'Supplier day rollover — price has changed.',
+                'B112' => 'The order has been paid before.',
+                'B113' => 'Fare mismatch — price had changed.',
+                'B114' => 'Flight changed.',
+                'B115' => 'Latest ticketing time has expired.',
+                'B116' => 'Price had changed.',
+                'B117' => 'Order Pricing failed. Contact administrator.',
+                'B118' => 'PNR status is invalid.',
+                'B119' => 'LCC content pre-check failed. Please retry.',
+                'B120' => 'Order Pricing failed. Supplier booking save failed.',
+            ];
+
+            if ($errorCode !== '0') {
+                $message = $pricingErrorMessages[$errorCode] 
+                    ?? ($pkfareResponse['errorMsg'] ?? 'Order pricing failed.');
+
+                return response()->json([
+                    'success' => false,
+                    'code'    => $errorCode,
+                    'message' => $message,
+                ], 400);
+            }
+
+            // --- Step 2: Ticketing request ---
+            $criteria = [
+                'orderNum' => $validatedData['orderNum'],
+                'PNR'      => $validatedData['pnr'],
+                'name'     => $validatedData['contact']['name'],
+                'email'    => $validatedData['contact']['email'],
+                'telNum'   => $validatedData['contact']['telNum'],
+            ];
+
+            $ticketResponse = $this->pkfareService->ticketOrder($criteria);
+            $errorCode = $ticketResponse['errorCode'] ?? null;
+
+            $ticketingErrorMessages = [
+                'S001' => 'System error',
+                'P001' => 'Wrong parameter',
+                'B002' => 'PartnerID does not exist',
+                'B003' => 'Illegal sign. Please check your signature',
+                'B009' => 'Order status is invalid',
+                'B010' => 'Order number does not exist',
+                'B022' => 'Ticketing failed. Insufficient balance.',
+                'B024' => 'Order already paid. No need to pay again.',
+            ];
+
+            if ($errorCode !== '0') {
+                $message = $ticketingErrorMessages[$errorCode] 
+                    ?? ($ticketResponse['errorMsg'] ?? 'Ticketing failed.');
+
+                return response()->json([
+                    'success' => false,
+                    'code'    => $errorCode,
+                    'message' => $message,
+                ], 400);
+            }
+
+            // --- Step 3: Update booking status ---
+            $booking = Booking::where('order_num', $validatedData['orderNum'])->firstOrFail();
+            $booking->update(['status' => 'confirmed']);
+
+            DB::commit();
+
+            // Log useful info for debugging (avoid sensitive data)
+            Log::info('Ticketing success', [
+                'orderNum' => $validatedData['orderNum'],
+                'response' => $ticketResponse['data'] ?? []
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order ticketed successfully.',
+                'booking' => $booking,
+            ]);
+
+        } catch (Throwable $e) {
+            DB::rollBack();
+            Log::error('Order ticketing failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to ticket booking. Please try again later.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
 
     // TODO: Add methods for payment callback handling, ticket issuance updates, etc.
 }

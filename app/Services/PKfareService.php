@@ -459,5 +459,57 @@ class PKfareService
         return $this->post('/json/cancel', $payload);
     }
 
+    /**
+     * Validates PNR and order price before payment and enforces ticketing within 30 minutes of OrderPricing.
+     *
+     * @param string $bookingReference The booking reference number (PNR) from PKfare
+     * @return array The order pricing confirmation
+     * @throws \Exception
+     */
+    public function orderPricing(string $orderNum): array
+    {
+
+        // Build payload as expected by PKFare's booking API
+        $payload = [
+            'authentication' => [
+                'partnerId' => $this->apiKey,
+                'sign' => md5($this->apiKey . $this->apiSecret),
+            ],
+            'orderPricing' => [
+                'orderNum' => $orderNum
+            ]
+        ];
+
+        return $this->post('/json/orderPricingV5', $payload);
+    }
+
+    /**
+     * Validates PNR and order price before payment and enforces ticketing within 30 minutes of OrderPricing.
+     *
+     * @param string $bookingReference The booking reference number (PNR) from PKfare
+     * @return array The order pricing confirmation
+     * @throws \Exception
+     */
+    public function ticketOrder(array $criteria): array
+    {
+
+        // Build payload as expected by PKFare's booking API
+        $payload = [
+            'authentication' => [
+                'partnerId' => $this->apiKey,
+                'sign' => md5($this->apiKey . $this->apiSecret),
+            ],
+            'ticketing' => [
+                'orderNum' => $criteria['orderNum'],
+                'PNR' => $criteria['PNR'],
+                'name' => $criteria['name'] ?? null,
+                'email' => $criteria['email'] ?? null,
+                'telNum' => $criteria['telNum'] ?? null,
+            ]
+        ];
+
+        return $this->post('/json/ticketing', $payload);
+    }
+
     // TODO: Add more PKfare specific methods as needed (e.g., ticket issuance, payment status, etc.)
 }
