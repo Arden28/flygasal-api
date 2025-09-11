@@ -538,7 +538,12 @@ class BookingController extends Controller
 
             // --- Step 3: Update booking status ---
             $booking = Booking::where('order_num', $validatedData['orderNum'])->firstOrFail();
-            $booking->update(['status' => 'confirmed']);
+            $booking->update(
+                [
+                    // 'status' => 'confirmed',
+                    'issue_status' => 'ISS_PRC'
+                ]
+            );
 
             DB::commit();
 
@@ -554,7 +559,7 @@ class BookingController extends Controller
                 'booking' => $booking,
             ]);
 
-        } catch (Throwable $e) {
+        } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Order ticketing failed', [
                 'error' => $e->getMessage(),
