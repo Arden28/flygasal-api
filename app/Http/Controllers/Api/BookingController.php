@@ -329,6 +329,8 @@ class BookingController extends Controller
             ], 400); // Bad request or adjust to suit
         }
 
+        $pkfareResponse['data']['paymentStatus'] = $booking->payment_status ?? 'N/A';
+
         return response()->json([
             'code' => $pkfareResponse['errorCode'],
             'message' => 'Booking retrieved successfully.',
