@@ -182,6 +182,7 @@ class BookingController extends Controller
                 'contact_phone'   => $validatedData['contactPhone'],
                 'status'          => 'pending',
                 'payment_status'  => 'unpaid',
+                'issue_status'    => 'TO_BE_PAID', // mark as TO_BE_PAID
                 'booking_date'    => now(),
             ]);
 
