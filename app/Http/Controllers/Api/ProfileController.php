@@ -44,7 +44,7 @@ class ProfileController extends Controller
 
         try {
             $validatedData = $request->validate([
-                'name' => 'required|string|max:255',
+                'name' => 'nullable|string|max:255',
                 'email' => 'nullable|string|email|max:255',
                 'password' => 'nullable|string|min:8', // Password can be updated, or left null
                 'roles' => 'nullable|array',
@@ -53,6 +53,7 @@ class ProfileController extends Controller
                 'agency_license' => 'nullable|string|max:255',
                 'agency_city' => 'nullable|string|max:255',
                 'agency_address' => 'nullable|string|max:255',
+                'agency_markup' => 'nullable|numeric',
                 'agency_logo' => 'nullable|image|mimes:png,jpg,jpeg,gif,svg|max:2048', // Optional file upload
             ]);
 
@@ -67,6 +68,7 @@ class ProfileController extends Controller
                 'agency_license' => $validatedData['agency_license'] ?? $user->agency_license,
                 'agency_city' => $validatedData['agency_city'] ?? $user->agency_city,
                 'agency_address' => $validatedData['agency_address'] ?? $user->agency_address,
+                'agency_markup' => $validatedData['agency_markup'] ?? $user->agency_markup,
                 'agency_logo' => $validatedData['agency_logo'] ?? $user->agency_logo,
             ]);
 
