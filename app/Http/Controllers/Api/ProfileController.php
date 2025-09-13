@@ -54,7 +54,7 @@ class ProfileController extends Controller
                 'agency_city' => 'nullable|string|max:255',
                 'agency_address' => 'nullable|string|max:255',
                 'agency_markup' => 'nullable|numeric',
-                'agency_logo' => 'nullable|image|mimes:png,jpg,jpeg,gif,svg|max:2048', // Optional file upload
+                'agency_logo' => 'nullable|url|max:2048', // Optional file upload
             ]);
 
             // Log::info($validatedData);

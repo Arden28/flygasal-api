@@ -119,7 +119,7 @@ Route::middleware('auth:sanctum')->group(function () {
             'agency_country'    => $user->agency_country ?? 'N/A',
             'agency_city'       => $user->agency_city ?? 'N/A',
             'agency_address'    => $user->agency_address ?? 'N/A',
-            'agency_logo'       => $user->agency_logo ? asset($user->agency_logo) : 'N/A',
+            'agency_logo'       => $user->agency_logo ? asset($user->agency_logo) : null,
             'agency_currency'   => $user->agency_currency ?? 'USD',
             'agency_markup'     => number_format($user->agency_markup, 2, '.', ''),
             'role'              => $user->getRoleNames()->first() ?? 'No role assigned',
