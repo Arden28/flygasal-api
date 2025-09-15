@@ -13,7 +13,7 @@ class WebhookController extends Controller
     {
         $expected = config('pkfare.webhook_token');
         $given    = $request->header('X-Pkfare-Token');
-        
+
         // Debug
         Log::info('The webhook was initiated!');
 
@@ -83,7 +83,7 @@ class WebhookController extends Controller
      */
     public function ticketIssuanceNotify(Request $request, HandleTicketIssuance $handle)
     {
-        $this->verify($request); // your shared-secret header check
+        // $this->verify($request); // your shared-secret header check
 
         // Validate minimally (optional – PKFARE already validates upstream)
         $data = $request->all();
