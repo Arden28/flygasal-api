@@ -91,6 +91,8 @@ class WebhookController extends Controller
             return response()->json(['errorCode' => 400, 'errorMsg' => 'orderNum missing'], 400);
         }
 
+        Log::info("Received ticket issuance notification for order", $data);
+
         $booking = $handle($data);
         Log::debug("Ticket issuance notification processed: $booking");
 
