@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Flights\Transaction;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Models\Role; // Import Role model
+use Throwable;
 
 // The UserController (Admin) handles CRUD operations for user accounts
 // and also allows assigning/revoking roles to users.
@@ -234,5 +238,115 @@ class UserController extends Controller
         // Return a success response
         return response()->json(['message' => 'User approved successfully.']);
     }
+
+    /**
+     * Admin: deposit funds into a user's wallet.
+     *
+     * POST /api/admin/users/{id}/deposit
+     * Body:
+     * - amount: numeric|min:0.01
+     * - currency: 3-letter code (e.g., KES, USD)
+     * - payment_gateway_reference: string|null (unique if provided)
+     * - payment_gateway: string|null (defaults to 'admin')
+     * - note: string|null
+     */
+    public function deposit(Request $request, $id)
+    {
+        // You can also gate: $this->authorize('manage-wallets');
+
+        $validated = $request->validate([
+            'amount'    => 'required|numeric|min:0.01',
+            'currency'  => 'required|string|size:3',
+            'payment_gateway_reference' => 'nullable|string|max:64',
+            'payment_gateway' => 'nullable|string|max:64',
+            'note'      => 'nullable|string|max:500',
+        ]);
+
+        $user = User::find($id);
+        if (!$user) {
+            return response()->json(['message' => 'User not found.'], 404);
+        }
+
+        // Generate a reference if none provided
+        $reference = $validated['payment_gateway_reference']
+            ?? strtoupper('ADMIN-'.bin2hex(random_bytes(6)));
+
+        // Idempotency: if a completed tx with same reference exists, return it
+        $existing = Transaction::where('payment_gateway_reference', $reference)->first();
+        if ($existing && $existing->status === 'completed') {
+            return response()->json([
+                'status'  => true,
+                'message' => 'Deposit already processed.',
+                'data' => [
+                    'trx_id'         => $existing->payment_gateway_reference,
+                    'date'           => optional($existing->transaction_date)->toDateString(),
+                    'amount'         => (float) $existing->amount,
+                    'currency'       => $existing->currency,
+                    'payment_gateway'=> $existing->payment_gateway,
+                    'status'         => $existing->status,
+                    'balance_after'  => (float) $user->wallet_balance,
+                ],
+            ], 200);
+        }
+
+        try {
+            $result = DB::transaction(function () use ($user, $validated, $reference) {
+                // Lock user row to avoid race conditions
+                $lockedUser = User::whereKey($user->id)->lockForUpdate()->first();
+
+                $before = (float) ($lockedUser->wallet_balance ?? 0.0);
+                $amount = (float) $validated['amount'];
+                $after  = $before + $amount;
+
+                // Create transaction as completed (admin credit)
+                $tx = Transaction::create([
+                    'user_id'    => $lockedUser->id,
+                    'booking_id' => null,
+                    'amount'     => $amount,
+                    'currency'   => strtoupper($validated['currency']),
+                    'type'       => 'wallet_topup',
+                    'status'     => 'completed',
+                    'payment_gateway_reference' => $reference,
+                    'transaction_date' => now(),
+                    'payment_gateway' => $validated['payment_gateway'] ?? 'admin',
+                    'description' => $validated['note'] ?? null,
+                ]);
+
+                // Credit wallet
+                $lockedUser->wallet_balance = $after;
+                $lockedUser->save();
+
+                return [$tx, $before, $after];
+            });
+
+            /** @var \App\Models\Flights\Transaction $tx */
+            [$tx, $before, $after] = $result;
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Deposit successful.',
+                'data'    => [
+                    'trx_id'         => $tx->payment_gateway_reference,
+                    'date'           => optional($tx->transaction_date)->toDateString(),
+                    'amount'         => (float) $tx->amount,
+                    'currency'       => $tx->currency,
+                    'payment_gateway'=> $tx->payment_gateway,
+                    'status'         => $tx->status,
+                    'balance_before' => $before,
+                    'balance_after'  => $after,
+                    'performed_by'   => Auth::id(),
+                ],
+            ], 200);
+
+        } catch (Throwable $e) {
+            Log::error('Admin deposit failed: '.$e->getMessage(), ['exception' => $e]);
+            return response()->json([
+                'status'  => false,
+                'message' => 'Failed to deposit funds. Please try again later.',
+                'error'   => app()->environment('production') ? null : $e->getMessage(),
+            ], 500);
+        }
+    }
+
 
 }

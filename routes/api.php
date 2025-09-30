@@ -190,6 +190,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // User Management
         Route::apiResource('users', UserController::class);
         Route::post('/users/{id}/approve', [UserController::class, 'approve']);
+        Route::post('/users/{id}/deposit', [UserController::class, 'deposit']);
 
         // System Settings
         Route::get('/settings',         [SettingsController::class, 'getGeneralSettings']);
