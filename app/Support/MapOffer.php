@@ -35,13 +35,24 @@ final class MapOffer
             }
             if (!$flightIds) continue;
 
-            // Flatten segment IDs preserving order (note provider key "segmengtIds")
+            // Build segmentId → flightId map
+            $segToFlight = [];
             $segIds = [];
             foreach ($flightIds as $fid) {
-                $segIds = array_merge($segIds, $flights[$fid]['segmengtIds'] ?? []);
+                foreach ($flights[$fid]['segmengtIds'] ?? [] as $sid) {
+                    $segIds[] = $sid;
+                    $segToFlight[$sid] = $fid; // link segment → flight
+                }
             }
 
-            $tripSegs = array_values(array_filter(array_map(fn($id) => $segments[$id] ?? null, $segIds)));
+            // Flatten segments and inject flightId
+            $tripSegs = array_values(array_filter(array_map(function ($id) use ($segments, $segToFlight) {
+                if (!isset($segments[$id])) return null;
+                $seg = $segments[$id];
+                $seg['flightId'] = $segToFlight[$id] ?? null; // inject flightId
+                return $seg;
+            }, $segIds)));
+
             if (!$tripSegs) continue;
 
             $firstSeg = $tripSegs[0];
