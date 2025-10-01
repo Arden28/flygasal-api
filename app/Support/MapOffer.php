@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support\Pkfare;
+namespace App\Support;
 
 final class MapOffer
 {

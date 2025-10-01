@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\PKfareService;
-use App\Support\Pkfare\MapOffer;
+use App\Support\MapOffer;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
