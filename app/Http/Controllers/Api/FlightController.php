@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\PKfareService;
+use App\Support\Pkfare\MapOffer;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -61,14 +62,21 @@ class FlightController extends Controller
             ];
 
             // 3. Call PKfareService to search for flights
-            $flights = $this->pkfareService->searchFlights($criteria);
+            $resp = $this->pkfareService->searchFlights($criteria);
+
+            $data = $resp['data'] ?? $resp;
+
+            // Normalize with MapOffer (recommended)
+            $offers = MapOffer::normalize($data);
 
             // 4. Return successful response with flight data
             return response()->json([
                 'message' => 'Flights retrieved successfully.',
-                'errorMsg' => $flights['errorMsg'] ?? null,
-                'errorCode' => $flights['errorCode'] ?? null,
-                'data' => $flights['data'] ?? $flights,
+                'errorMsg' => $resp['errorMsg'] ?? null,
+                'errorCode' => $resp['errorCode'] ?? null,
+                'shoppingKey' => $data['shoppingKey'] ?? null,
+                'searchKey' => $data['searchKey'] ?? null,
+                'offers' => $offers,
             ]);
 
         } catch (ValidationException $e) {
