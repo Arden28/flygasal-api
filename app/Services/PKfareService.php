@@ -225,6 +225,8 @@ class PKfareService
             }, $segments);
         }
 
+        Log::info('Payload Precise Pricing', $payload);
+
         // Log::debug('Received journeys:', $payload);
 
         return $this->post('/json/precisePricing_V10', $payload);
