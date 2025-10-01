@@ -203,32 +203,27 @@ class PKfareService
         $hasExplicitSolution = !empty($criteria['solutionId']) || !empty($criteria['solutionKey']);
         $journeys = $criteria['journeys'] ?? [];
 
-        // If we don’t have explicit solution references, send journeys map.
-        if (!$hasExplicitSolution && !empty($journeys)) {
-            if (isset($journeys[0]['flightNum'])) {
-                $journeys = [ $journeys ];
-            }
-            foreach ($journeys as $index => $segments) {
 
-                $key = 'journey_' . $index;
+        if (isset($journeys[0]['flightNum'])) {
+            $journeys = [ $journeys ];
+        }
+        foreach ($journeys as $index => $segments) {
 
-                $payload['pricing']['journeys'][$key] = array_map(function ($segment) {
-                    return [
-                        'airline'        => $segment['airline']        ?? '',
-                        'flightNum'      => $segment['flightNum']      ?? '',
-                        'arrival'        => $segment['arrival']        ?? '',
-                        'arrivalDate'    => $segment['arrivalDate']    ?? '',
-                        'arrivalTime'    => $segment['arrivalTime']    ?? '',
-                        'departure'      => $segment['departure']      ?? '',
-                        'departureDate'   => $segment['departureDate'] ?? '',
-                        'departureTime'   => $segment['departureTime'] ?? '',
-                        'bookingCode'    => $segment['bookingCode']    ?? '',
-                    ];
-                }, $segments);
-            }
-        } else {
-            // Make absolutely sure journeys is empty when we send a solutionId/Key
-            $payload['pricing']['journeys'] = new stdClass(); // {} instead of []
+            $key = 'journey_' . $index;
+
+            $payload['pricing']['journeys'][$key] = array_map(function ($segment) {
+                return [
+                    'airline'        => $segment['airline']        ?? '',
+                    'flightNum'      => $segment['flightNum']      ?? '',
+                    'arrival'        => $segment['arrival']        ?? '',
+                    'arrivalDate'    => $segment['arrivalDate']    ?? '',
+                    'arrivalTime'    => $segment['arrivalTime']    ?? '',
+                    'departure'      => $segment['departure']      ?? '',
+                    'departureDate'   => $segment['departureDate'] ?? '',
+                    'departureTime'   => $segment['departureTime'] ?? '',
+                    'bookingCode'    => $segment['bookingCode']    ?? '',
+                ];
+            }, $segments);
         }
 
         return $this->post('/json/precisePricing_V10', $payload);
