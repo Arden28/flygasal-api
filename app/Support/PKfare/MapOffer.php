@@ -5,6 +5,7 @@ namespace App\Support\Pkfare;
 final class MapOffer
 {
     /**
+     *
      * Normalize PKFare "data" payload to UI-ready offers.
      * @param array $payload The PKFare "data" array (solutions, flights, segments, shoppingKey, etc.)
      * @return array<int,array<string,mixed>>
