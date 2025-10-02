@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\PKfareService;
 use App\Support\MapOffer;
+use App\Support\MapPrecisePricing;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -127,18 +128,21 @@ class FlightController extends Controller
                 'children' => $validatedData['children'] ?? 0,
                 'infants' => $validatedData['infants'] ?? 0,
                 'cabin' => $validatedData['cabinType'] ?? 'ECONOMY',
-                'tag' => $validatedData['tag'] ?? ""
+                'tag' => ""
+                // 'tag' => $validatedData['tag'] ?? ""
             ];
 
             // 3. Call PKfareService to precise pricing
             $precisePricing = $this->pkfareService->getPrecisePricing($criteria);
 
             // 4. Return successful response with flight data
+            $data = $precisePricing['data'] ?? $precisePricing;
+
             return response()->json([
-                'message' => 'Precise pricing retrieved successfully.',
-                'errorMsg' => $precisePricing['errorMsg'] ?? null,
+                'message'   => 'Precise pricing retrieved successfully.',
+                'errorMsg'  => $precisePricing['errorMsg'] ?? null,
                 'errorCode' => $precisePricing['errorCode'] ?? null,
-                'data' => $precisePricing['data'] ?? $precisePricing,
+                'offer'     => MapPrecisePricing::normalize($data),
             ]);
 
         } catch (ValidationException $e) {
