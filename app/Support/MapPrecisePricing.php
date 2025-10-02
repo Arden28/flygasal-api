@@ -39,6 +39,14 @@ final class MapPrecisePricing
             }
         }
 
+        // Passengers summary
+        $passengers = [
+            'adults'   => (int)($solution['adults'] ?? 1),
+            'children' => (int)($solution['children'] ?? 0),
+            'infants'  => (int)($solution['infants'] ?? 0),
+        ];
+        $passengers['total'] = $passengers['adults'] + $passengers['children'] + $passengers['infants'];
+
         // Collect journey flightIds from solution->journeys
         $journeys = $solution['journeys'] ?? [];
         $journeyKeys = array_keys($journeys);
@@ -225,6 +233,8 @@ final class MapPrecisePricing
             'cabin'          => $firstSeg['cabinClass']  ?? null,
             'bookingCode'    => $firstSeg['bookingCode'] ?? null,
             'availabilityCount' => $firstSeg['availabilityCount'] ?? 0,
+
+            'passengers' => $passengers,
 
             'baggage' => [
                 'adt' => [

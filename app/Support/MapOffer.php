@@ -26,6 +26,15 @@ final class MapOffer
         $out = [];
 
         foreach ($solutions as $sol) {
+
+            // Passengers summary
+            $passengers = [
+                'adults'   => (int)($sol['adults'] ?? 1),
+                'children' => (int)($sol['children'] ?? 0),
+                'infants'  => (int)($sol['infants'] ?? 0),
+            ];
+            $passengers['total'] = $passengers['adults'] + $passengers['children'] + $passengers['infants'];
+
             $journeyKeys = array_keys($sol['journeys'] ?? []);
             if (!$journeyKeys) continue;
 
@@ -150,6 +159,8 @@ final class MapOffer
                 'availabilityCount' => $firstSeg['availabilityCount'] ?? 0,
 
                 'isVI' => in_array('VI', $sol['category'] ?? [], true),
+
+                'passengers' => $passengers,
 
                 'priceBreakdown' => [
                     'currency' => $currency,
