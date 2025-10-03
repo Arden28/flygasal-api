@@ -19,6 +19,37 @@ class HandleTicketIssuance
     {
         return DB::transaction(function () use ($payload) {
 
+            $orderStatus = $payload['orderStatus'] ?? '';
+            $statusMap = [
+                'ISS_PRC'          => 'issuing',
+                'CHG_PRC'          => 'changing',
+                'REFD_PRC'         => 'refunding',
+                'VOID_PRC'         => 'voiding',
+                'TO_BE_PAID'       => 'pending_payment',
+                'ISSED'            => 'issued',
+                'TO_BE_RSV'        => 'pending_reservation',
+                'UNDER_REVIEW'     => 'under_review',
+                'HOLD'             => 'on_hold',
+                'RSV_FAIL'         => 'reservation_failed',
+                'CLOSED'           => 'closed',
+                'CNCL'             => 'cancelled',
+                'CNCL_TO_BE_REIM'  => 'cancelled_reimbursing',
+                'CNCL_REIMED'      => 'cancelled_reimbursed',
+                'CHG_RQ'           => 'change_requested',
+                'CHG_TO_BE_PAID'   => 'change_pending_payment',
+                'CHG_REJ'          => 'change_rejected',
+                'CHGD'             => 'changed',
+                'REDF_RQ'          => 'refund_requested',
+                'REFD_REJ'         => 'refund_rejected',
+                'REFD_TO_BE_REIM'  => 'refund_reimbursing',
+                'REFD_REIMED'      => 'refund_reimbursed',
+                'REFD'             => 'refunded',
+                'VOID_REJ'         => 'void_rejected',
+                'VOID_TO_BE_REIM'  => 'void_reimbursing',
+                'VOID_REIMED'      => 'void_reimbursed',
+                'VOID'             => 'voided',
+            ];
+
             // 1) Upsert booking
             $booking = Booking::query()->updateOrCreate(
                 ['order_num' => $payload['orderNum']],
@@ -36,7 +67,9 @@ class HandleTicketIssuance
                     'void_service_fee'  => Arr::get($payload, 'voidServiceFee.amount'),
                     'void_currency'     => Arr::get($payload, 'voidServiceFee.currency'),
 
-                    'issue_status'      => strtoupper($payload['status'] ?? 'ISSUED'),
+                    'issue_status'      => $payload['orderStatus'] ?? '',
+                    'status'            => $statusMap[$orderStatus] ?? 'unknown',
+
                     'inform_type'       => $payload['informType'] ?? null,
                     'reject_reason'     => $payload['rejectReason'] ?? null,
                     'issue_remark'      => $payload['remark'] ?? null,

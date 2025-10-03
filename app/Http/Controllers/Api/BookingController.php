@@ -495,7 +495,7 @@ class BookingController extends Controller
             ];
 
             if ($errorCode !== '0') {
-                $message = $pricingErrorMessages[$errorCode] 
+                $message = $pricingErrorMessages[$errorCode]
                     ?? ($pkfareResponse['errorMsg'] ?? 'Order pricing failed.');
 
                 return response()->json([
@@ -529,7 +529,7 @@ class BookingController extends Controller
             ];
 
             if ($errorCode !== '0') {
-                $message = $ticketingErrorMessages[$errorCode] 
+                $message = $ticketingErrorMessages[$errorCode]
                     ?? ($ticketResponse['errorMsg'] ?? 'Ticketing failed.');
 
                 return response()->json([
