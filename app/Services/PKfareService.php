@@ -406,7 +406,7 @@ class PKfareService
             }, $segments);
         }
 
-        // Log::info('Booking Payload: ', $payload);
+        Log::info('Booking Payload: ', $payload);
         return $this->post('/json/preciseBooking_V7', $payload);
     }
 

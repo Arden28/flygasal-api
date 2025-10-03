@@ -59,7 +59,7 @@ class FlightController extends Controller
                 'adults' => $validatedData['adults'],
                 'children' => $validatedData['children'] ?? 0,
                 'infants' => $validatedData['infants'] ?? 0,
-                'cabinClass' => $validatedData['cabinType'] ?? 'Economy',
+                'cabinClass' => $validatedData['cabinType'] ?? '',
             ];
 
             // 3. Call PKfareService to search for flights
