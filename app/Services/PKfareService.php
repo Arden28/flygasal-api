@@ -355,12 +355,18 @@ class PKfareService
 
                 'solution' => [
                     'solutionId' => $bookingDetails['solutionId'],
-                    'adtFare' => $bookingDetails['selectedFlight']['adtFare'] ?? null,
-                    'adtTax' => $bookingDetails['selectedFlight']['adtTax'] ?? null,
-                    'chdFare' => $bookingDetails['selectedFlight']['chdFare'] ?? null,
-                    'chdTax' => $bookingDetails['selectedFlight']['chdTax'] ?? null,
-                    'infFare' => $bookingDetails['selectedFlight']['infFare'] ?? null,
-                    'infTax' => $bookingDetails['selectedFlight']['infTax'] ?? null,
+
+                    // Adults
+                    'adtFare' => $bookingDetails['selectedFlight']['priceBreakdown']['ADT']['fare'] ?? 0,
+                    'adtTax'  => $bookingDetails['selectedFlight']['priceBreakdown']['ADT']['taxes'] ?? 0,
+
+                    // Children
+                    'chdFare' => $bookingDetails['selectedFlight']['priceBreakdown']['CHD']['fare'] ?? 0,
+                    'chdTax'  => $bookingDetails['selectedFlight']['priceBreakdown']['CHD']['taxes'] ?? 0,
+
+                    // Infants
+                    'infFare' => $bookingDetails['selectedFlight']['priceBreakdown']['INF']['fare'] ?? 0,
+                    'infTax'  => $bookingDetails['selectedFlight']['priceBreakdown']['INF']['taxes'] ?? 0,
                     'journeys' => [],
                 ],
 
@@ -396,11 +402,11 @@ class PKfareService
                     'airline' => $segment['airline'] ?? '',
                     'flightNum' => $segment['flightNum'] ?? '',
                     'arrival' => $segment['arrival'] ?? '',
-                    'arrivalDate' => date('Y-m-d', $segment['arrivalDate'] / 1000),
-                    'arrivalTime' => date('H:i', $segment['arrivalDate'] / 1000),
+                    'arrivalDate' => $segment['strArrivalDate'] ?? $segment['arrivalDate'],
+                    'arrivalTime' => $segment['strArrivalTime'] ?? $segment['arrivalTime'],
                     'departure' => $segment['departure'] ?? '',
-                    'departureDate' => date('Y-m-d', $segment['departureDate'] / 1000),
-                    'departureTime' => date('H:i', $segment['departureDate'] / 1000),
+                    'departureDate' => $segment['strDepartureDate'] ?? $segment['departureDate'],
+                    'departureTime' => $segment['strDepartureTime'] ?? $segment['departureTime'],
                     'bookingCode' => $segment['bookingCode'] ?? '',
                 ];
             }, $segments);
