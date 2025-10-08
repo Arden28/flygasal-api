@@ -68,6 +68,7 @@ class FlightController extends Controller
             $resp = $this->pkfareService->searchFlights($criteria);
 
             $data = $resp['data'] ?? $resp;
+            Log::info('Search data', $data);
 
             // Normalize with MapOffer (recommended)
             $offers = MapOffer::normalize($data);
