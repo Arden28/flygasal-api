@@ -38,6 +38,7 @@ class FlightController extends Controller
             // 1. Validate incoming request data
             $validatedData = $request->validate([
                 'tripType' => 'nullable|string', //required
+                'flights' => 'nullable|array', // <-- expect an array directly
                 'origin' => 'required|string|size:3', // IATA code, e.g., 'NBO'
                 'destination' => 'required|string|size:3', // IATA code, e.g., 'JFK'
                 'departureDate' => 'required|date_format:Y-m-d|after_or_equal:today', // YYYY-MM-DD
@@ -51,6 +52,7 @@ class FlightController extends Controller
             // Log::info($validatedData['cabinType']);
             // 2. Prepare criteria for PKfareService
             $criteria = [
+                'flights' => $validatedData['flights'] ?? [],
                 'tripType' => $validatedData['tripType'] ?? 'Oneway',
                 'origin' => strtoupper($validatedData['origin']), // Ensure IATA codes are uppercase
                 'destination' => strtoupper($validatedData['destination']),
