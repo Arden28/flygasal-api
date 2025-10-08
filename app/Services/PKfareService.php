@@ -147,25 +147,45 @@ class PKfareService
             ],
         ];
 
-        // Add first leg
-        $payload['search']['searchAirLegs'][] = [
-            'cabinClass' => $criteria['cabinClass'] ?? '',
-            'departureDate' => $criteria['departureDate'],
-            'destination' => $criteria['destination'],
-            'origin' => $criteria['origin'],
-            'airline' => $criteria['airline'] ?? '',
-        ];
+        $flights = $criteria['flights'] ?? [];
 
-        // Optional return leg
-        if (!empty($criteria['returnDate'])) {
-            $payload['search']['searchAirLegs'][] = [
-                'cabinClass' => $criteria['cabinClass'] ?? '',
-                'departureDate' => $criteria['returnDate'],
-                'destination' => $criteria['origin'],     // Reverse destination
-                'origin' => $criteria['destination'],     // Reverse origin
-                'airline' => $criteria['airline'] ?? '',
-            ];
+        if (!empty($flights) && isset($flights[0]['origin'])) {
+            // Single flat journey, wrap it
+            $flights = [ $flights ];
         }
+
+        foreach($flights as $index => $segments){
+
+            $payload['search']['searchAirLegs'] = array_map(function ($segment) {
+                return [
+                    'cabinClass' => '',
+                    'departureDate' => $segment['depart'],
+                    'destination' => $segment['destination'],
+                    'origin' => $segment['origin'],
+                    'airline' => '',
+                ];
+            }, $segments);
+        }
+
+        // Add first leg
+        // $payload['search']['searchAirLegs'][] = [
+        //     'cabinClass' => $criteria['cabinClass'] ?? '',
+        //     'departureDate' => $criteria['departureDate'],
+        //     'destination' => $criteria['destination'],
+        //     'origin' => $criteria['origin'],
+        //     'airline' => $criteria['airline'] ?? '',
+        // ];
+
+        // // Optional return leg
+        // if (!empty($criteria['returnDate'])) {
+        //     $payload['search']['searchAirLegs'][] = [
+        //         'cabinClass' => $criteria['cabinClass'] ?? '',
+        //         'departureDate' => $criteria['returnDate'],
+        //         'destination' => $criteria['origin'],     // Reverse destination
+        //         'origin' => $criteria['destination'],     // Reverse origin
+        //         'airline' => $criteria['airline'] ?? '',
+        //     ];
+        // }
 
         Log::info('Payload Search: ', $payload);
 
