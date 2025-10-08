@@ -149,7 +149,7 @@ class PKfareService
 
         // Add first leg
         $payload['search']['searchAirLegs'][] = [
-            'cabinClass' => '',
+            'cabinClass' => $criteria['cabinClass'] ?? '',
             'departureDate' => $criteria['departureDate'],
             'destination' => $criteria['destination'],
             'origin' => $criteria['origin'],
