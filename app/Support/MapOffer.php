@@ -5,8 +5,8 @@ namespace App\Support;
 final class MapOffer
 {
     /**
-     * Normalize PKFare "data" payload to UI-ready offers.
      *
+     * Normalize PKFare "data" payload to UI-ready offers.
      * @param array $payload The PKFare "data" array (solutions, flights, segments, shoppingKey, etc.)
      * @return array<int,array<string,mixed>>
      */
@@ -35,16 +35,12 @@ final class MapOffer
             ];
             $passengers['total'] = $passengers['adults'] + $passengers['children'] + $passengers['infants'];
 
-            $journeys = $sol['journeys'] ?? [];
-
-            // Normalize associative journeys like ['journey_0' => [...]]
-            if (!empty($journeys) && array_keys($journeys) !== range(0, count($journeys) - 1)) {
-                $journeys = array_values($journeys);
-            }
+            $journeyKeys = array_keys($sol['journeys'] ?? []);
+            if (!$journeyKeys) continue;
 
             $flightIds = [];
-            foreach ($journeys as $flightsInJourney) {
-                $flightIds = array_merge($flightIds, $flightsInJourney);
+            foreach ($journeyKeys as $k) {
+                $flightIds = array_merge($flightIds, $sol['journeys'][$k] ?? []);
             }
             if (!$flightIds) continue;
 
@@ -135,35 +131,6 @@ final class MapOffer
                 $lastTktIso = date(DATE_ATOM, ((int)$firstF['lastTktTime']) / 1000);
             }
 
-            // Build journeys output (UI-friendly)
-            $journeysOut = [];
-            foreach ($journeys as $index => $flightsInJourney) {
-                $key = 'journey_' . $index;
-                $journeysOut[$key] = [];
-                foreach ($flightsInJourney as $fid) {
-                    $flight = $flights[$fid] ?? null;
-                    if (!$flight) continue;
-                    foreach (($flight['segmengtIds'] ?? []) as $sid) {
-                        if (!isset($segments[$sid])) continue;
-                        $seg = $segments[$sid];
-                        $journeysOut[$key][] = [
-                            'airline'        => $seg['airline'] ?? '',
-                            'flightNum'      => $seg['flightNum'] ?? '',
-                            'arrival'        => $seg['arrival'] ?? '',
-                            'arrivalDate'    => self::dt($seg['strArrivalDate'] ?? null),
-                            'arrivalTime'    => $seg['strArrivalTime'] ?? '',
-                            'departure'      => $seg['departure'] ?? '',
-                            'departureDate'  => self::dt($seg['strDepartureDate'] ?? null),
-                            'departureTime'  => $seg['strDepartureTime'] ?? '',
-                            'bookingCode'    => $seg['bookingCode'] ?? '',
-                            'equipment'      => $seg['equipment'] ?? '',
-                            'cabinClass'     => $seg['cabinClass'] ?? '',
-                            'flightId'       => $seg['flightId'] ?? '',
-                        ];
-                    }
-                }
-            }
-
             $out[] = [
                 'id' => $firstSeg['segmentId'] ?? null,
                 'solutionKey' => $sol['solutionKey'] ?? null,
@@ -217,7 +184,6 @@ final class MapOffer
 
                 'flightIds' => $flightIds,
                 'segments'  => $tripSegs,
-                'journeys'  => $journeysOut,
 
                 'lastTktTime' => $lastTktIso,
                 'expired' => $lastTktIso ? (strtotime($lastTktIso) < time()) : false,
