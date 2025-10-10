@@ -246,7 +246,7 @@ final class MapOffer
                 'rules' => ['adt' => $rulesADT],
 
                 'flightIds' => array_values(array_unique($flightIdsAll)),
-                'segments'  => $this->segmentsFromIds($globalSegList, $segmentsById, $flightsById),
+                'segments'  => self::segmentsFromIds($globalSegList, $segmentsById, $flightsById),
 
                 'lastTktTime' => $lastTktIso,
                 'expired' => $expired,
@@ -283,7 +283,7 @@ final class MapOffer
     }
 
     /** Helper to materialize global segments with attached flightId for convenience. */
-    private function segmentsFromIds(array $ids, array $segmentsById, array $flightsById): array
+    private static function segmentsFromIds(array $ids, array $segmentsById, array $flightsById): array
     {
         $out = [];
         // Build map segId -> flightId by scanning flights once
