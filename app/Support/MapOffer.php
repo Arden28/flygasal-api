@@ -39,14 +39,11 @@ final class MapOffer
             $journeys = $sol['journeys'] ?? [];
             if (!$journeys) continue;
 
-            // Sort by natural key just in case
-            uksort($journeys, static function ($a, $b) {
-                return strnatcmp($a, $b);
-            });
+            uksort($journeys, static fn($a,$b) => strnatcmp($a,$b));
 
             $legs = [];
             $globalSegList = [];
-            $globalIdxToSegId = []; // 1-based index across ALL legs
+            $globalIdxToSegId = []; // 1-based across all legs
             $marketingCarriersSet = [];
             $operatingCarriersSet = [];
             $flightIdsAll = [];
@@ -56,41 +53,36 @@ final class MapOffer
                 $legFlightIds = array_values($flightIdsOfJourney ?? []);
                 if (!$legFlightIds) continue;
 
-                $legSegIds = [];
                 $legSegments = [];
 
-                // Build segments for this leg in order of flights then segmengtIds
                 foreach ($legFlightIds as $fid) {
                     $flight = $flightsById[$fid] ?? null;
                     if (!$flight) continue;
 
                     $flightIdsAll[] = $fid;
 
-                    // last ticketing (collect for later min)
                     if (!empty($flight['lastTktTime'])) {
                         $iso = self::parseDateFlex($flight['lastTktTime']);
                         if ($iso) $lastTktCandidates[] = $iso;
                     }
 
+                    // NOTE: supplier field is "segmengtIds" (typo preserved)
                     foreach (($flight['segmengtIds'] ?? []) as $sid) {
                         if (!isset($segmentsById[$sid])) continue;
                         $seg = $segmentsById[$sid];
 
-                        // enrich carriers sets
+                        // collect carriers
                         if (!empty($seg['airline'])) {
                             $marketingCarriersSet[$seg['airline']] = true;
                         }
-                        $op = $seg['opFltAirline'] ?? null;
-                        if ($op) {
-                            $operatingCarriersSet[$op] = true;
+                        if (!empty($seg['opFltAirline'])) {
+                            $operatingCarriersSet[$seg['opFltAirline']] = true;
                         }
 
-                        $legSegIds[] = $sid;
-                        $legSegments[] = array_merge($seg, [
-                            'flightId' => $fid,
-                        ]);
+                        // attach flightId
+                        $legSegments[] = array_merge($seg, ['flightId' => $fid]);
 
-                        // global running index (1-based)
+                        // global 1-based index
                         $globalIdxToSegId[count($globalSegList) + 1] = $sid;
                         $globalSegList[] = $sid;
                     }
@@ -98,24 +90,21 @@ final class MapOffer
 
                 if (!$legSegments) continue;
 
-                // Per-leg summary
                 $firstSeg = $legSegments[0];
                 $lastSeg  = $legSegments[count($legSegments) - 1];
-
-                // Use first flight meta if available (PKFare journeyTime is per flight object)
                 $firstFlight = $flightsById[$legFlightIds[0]] ?? null;
 
-                // Per-leg 1-based index map (useful for UI)
+                // Per-leg 1-based index map (UI convenience)
                 $legIdxToSegId = [];
                 foreach ($legSegments as $i => $s) {
                     $legIdxToSegId[$i + 1] = $s['segmentId'];
                 }
 
                 $legs[] = [
-                    'flightIds' => $legFlightIds,
-                    'segments'  => $legSegments,
-                    'origin'    => $firstSeg['departure'] ?? null,
-                    'destination'=> $lastSeg['arrival'] ?? null,
+                    'flightIds'     => $legFlightIds,
+                    'segments'      => $legSegments, // full objects (with flightId)
+                    'origin'        => $firstSeg['departure'] ?? null,
+                    'destination'   => $lastSeg['arrival'] ?? null,
                     'departureTime' => self::dtMs($firstSeg['departureDate'] ?? null),
                     'arrivalTime'   => self::dtMs($lastSeg['arrivalDate'] ?? null),
                     'journeyTime'   => $firstFlight['journeyTime'] ?? null,
@@ -131,7 +120,7 @@ final class MapOffer
 
             if (!$legs) continue;
 
-            // Map baggage/rules using GLOBAL 1-based segment order across all legs
+            // Map baggage/rules using GLOBAL indices
             $adtChecked = []; $adtCarry = [];
             foreach (($sol['baggageMap']['ADT'] ?? []) as $b) {
                 foreach (($b['segmentIndexList'] ?? []) as $n) {
@@ -183,47 +172,42 @@ final class MapOffer
             $merch    = (float)($sol['merchantFee'] ?? 0);
             $total    = $base + $tax + $q + $tkt + $plat + $merch;
 
-            // Marketing/Operating carriers
-            $marketing = array_values(array_keys(array_filter($marketingCarriersSet)));
-            $operating = array_values(array_keys(array_filter($operatingCarriersSet)));
+            // Carriers (unique, compact)
+            $marketing = array_values(array_keys($marketingCarriersSet));
+            $operating = array_values(array_filter(array_keys($operatingCarriersSet)));
 
-            // Headline info (use leg 0 for display)
+            // Headline (first leg)
             $head = $legs[0];
-            $tail = $legs[count($legs) - 1];
-            $firstSeg = $head['segments'][0];
-            $idForCard = $firstSeg['segmentId'] ?? null;
+            $firstSegForId = $head['segments'][0] ?? null;
 
-            // Last ticketing: choose the earliest across used flights
+            // Last ticketing: earliest across all used flights
             $lastTktIso = null;
-            if ($lastTktCandidates) {
+            if (!empty($lastTktCandidates)) {
                 sort($lastTktCandidates);
                 $lastTktIso = $lastTktCandidates[0];
             }
-
-            // Expiry flag
             $expired = $lastTktIso ? (strtotime($lastTktIso) < time()) : false;
 
             $out[] = [
-                'id' => $idForCard,
-                'solutionKey' => $sol['solutionKey'] ?? null,
-                'solutionId'  => $sol['solutionId'] ?? null,
-                'shoppingKey' => $payload['shoppingKey'] ?? null,
+                'id'            => $firstSegForId['segmentId'] ?? null,
+                'solutionKey'   => $sol['solutionKey'] ?? null,
+                'solutionId'    => $sol['solutionId'] ?? null,
+                'shoppingKey'   => $payload['shoppingKey'] ?? null,
 
-                'platingCarrier' => $sol['platingCarrier'] ?? null,
+                'platingCarrier'    => $sol['platingCarrier'] ?? null,
                 'marketingCarriers' => $marketing,
                 'operatingCarriers' => $operating,
 
-                // Roundtrip-friendly headline (first leg’s origin & destination)
-                'origin' => $head['origin'],
-                'destination' => $head['destination'],
+                'origin'        => $head['origin'],
+                'destination'   => $head['destination'],
 
+                // Legs (each with full segment objects)
                 'summary' => [
                     'legs' => $legs,
-                    // convenience global mapping for supplier indices
                     'globalIdxToSegId' => $globalIdxToSegId,
                 ],
 
-                'passengers' => $passengers,
+                'passengers'    => $passengers,
 
                 'priceBreakdown' => [
                     'currency' => $currency,
@@ -246,10 +230,12 @@ final class MapOffer
                 'rules' => ['adt' => $rulesADT],
 
                 'flightIds' => array_values(array_unique($flightIdsAll)),
+
+                // ⬇️ Full segment objects (with flightId) across ALL legs
                 'segments'  => self::segmentsFromIds($globalSegList, $segmentsById, $flightsById),
 
                 'lastTktTime' => $lastTktIso,
-                'expired' => $expired,
+                'expired'     => $expired,
             ];
         }
 
@@ -263,36 +249,33 @@ final class MapOffer
     }
 
     /**
-     * Parse a value that might be:
-     *  - epoch ms (int/num string)
-     *  - "YYYY-mm-dd HH:ii:ss" string
+     * Parse a value that might be epoch ms or "YYYY-mm-dd HH:ii:ss".
      * Returns ISO-8601 or null.
      */
     private static function parseDateFlex($value): ?string
     {
         if ($value === null || $value === '') return null;
-
-        // numeric epoch ms?
         if (is_numeric($value)) {
             return date(DATE_ATOM, ((int)$value) / 1000);
         }
-
-        // try strtotime on string
         $ts = strtotime((string)$value);
         return $ts ? date(DATE_ATOM, $ts) : null;
     }
 
-    /** Helper to materialize global segments with attached flightId for convenience. */
+    /**
+     * Materialize segment IDs into full segment objects, injecting flightId.
+     */
     private static function segmentsFromIds(array $ids, array $segmentsById, array $flightsById): array
     {
-        $out = [];
-        // Build map segId -> flightId by scanning flights once
+        // Build segId -> flightId map from flights
         $segToFlight = [];
         foreach ($flightsById as $fid => $flight) {
             foreach (($flight['segmengtIds'] ?? []) as $sid) {
                 $segToFlight[$sid] = $fid;
             }
         }
+
+        $out = [];
         foreach ($ids as $sid) {
             if (!isset($segmentsById[$sid])) continue;
             $seg = $segmentsById[$sid];
