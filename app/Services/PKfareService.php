@@ -149,7 +149,7 @@ class PKfareService
 
         // Add first leg
         $payload['search']['searchAirLegs'][] = [
-            'cabinClass' => $criteria['cabinClass'] ?? '',
+            'cabinClass' => '',
             'departureDate' => $criteria['departureDate'],
             'destination' => $criteria['destination'],
             'origin' => $criteria['origin'],
@@ -159,7 +159,7 @@ class PKfareService
         // Optional return leg
         if (!empty($criteria['returnDate'])) {
             $payload['search']['searchAirLegs'][] = [
-                'cabinClass' => $criteria['cabinClass'] ?? '',
+                'cabinClass' => '',
                 'departureDate' => $criteria['returnDate'],
                 'destination' => $criteria['origin'],     // Reverse destination
                 'origin' => $criteria['destination'],     // Reverse origin
