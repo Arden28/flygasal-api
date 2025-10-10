@@ -12,17 +12,13 @@ final class MapOffer
      */
     public static function normalize(array $payload): array
     {
-        // index segments by segmentId
         $segments = [];
         foreach (($payload['segments'] ?? []) as $s) {
-            if (!isset($s['segmentId'])) continue;
             $segments[$s['segmentId']] = $s;
         }
 
-        // index flights by flightId
         $flights = [];
         foreach (($payload['flights'] ?? []) as $f) {
-            if (!isset($f['flightId'])) continue;
             $flights[$f['flightId']] = $f;
         }
 
@@ -31,7 +27,7 @@ final class MapOffer
 
         foreach ($solutions as $sol) {
 
-            /* ---------------- Passengers ---------------- */
+            // Passengers summary
             $passengers = [
                 'adults'   => (int)($sol['adults'] ?? 1),
                 'children' => (int)($sol['children'] ?? 0),
@@ -39,115 +35,54 @@ final class MapOffer
             ];
             $passengers['total'] = $passengers['adults'] + $passengers['children'] + $passengers['infants'];
 
-            /* ---------------- Journeys (sorted numerically) ---------------- */
-            $journeyKeysRaw = array_keys($sol['journeys'] ?? []);
-            $journeyNums = [];
-            foreach ($journeyKeysRaw as $k) {
-                if (preg_match('/journey_(\d+)/', $k, $m)) {
-                    $journeyNums[] = (int)$m[1];
-                }
-            }
-            sort($journeyNums);
-            $journeyKeys = array_map(static fn($n) => "journey_$n", $journeyNums);
-            if (!$journeyKeys) continue;
+            $journeys = $sol['journeys'] ?? [];
 
-            $allFlightIds = [];
-            $tripSegs = [];     // global ordered segment objects (concatenated legs)
-            $legData = [];      // per-journey leg summaries
-
-            /* =========================================================
-               Carve each journey into a separate "leg"
-               ========================================================= */
-            foreach ($journeyKeys as $jKey) {
-                $jFlightIds = $sol['journeys'][$jKey] ?? [];
-                if (!$jFlightIds) {
-                    // If a journey key exists but is empty, skip only this journey.
-                    continue;
-                }
-
-                $jSegIds = [];
-                $jSegToFlight = [];
-
-                foreach ($jFlightIds as $jfid) {
-                    $allFlightIds[] = $jfid;
-
-                    // NOTE: this key name is intentional per your upstream
-                    foreach ($flights[$jfid]['segmengtIds'] ?? [] as $sid) {
-                        $jSegIds[] = $sid;
-                        $jSegToFlight[$sid] = $jfid;
-                    }
-                }
-
-                // Inject flightId onto each segment; filter out any that aren't defined
-                $legSegs = array_values(array_filter(array_map(
-                    static function ($id) use ($segments, $jSegToFlight) {
-                        if (!isset($segments[$id])) return null;
-                        $seg = $segments[$id];
-                        $seg['flightId'] = $jSegToFlight[$id] ?? null;
-                        return $seg;
-                    },
-                    $jSegIds
-                )));
-
-                // Enforce chronological order within this leg
-                usort($legSegs, static function ($a, $b) {
-                    return (int)($a['departureDate'] ?? 0) <=> (int)($b['departureDate'] ?? 0);
-                });
-
-                if (empty($legSegs)) {
-                    // nothing valid about this leg → skip it
-                    continue;
-                }
-
-                // Append into global ordered trip segments
-                $tripSegs = array_merge($tripSegs, $legSegs);
-
-                // Build a leg summary (used by frontend multi/return rendering)
-                $firstSegLeg = $legSegs[0];
-                $lastSegLeg  = $legSegs[count($legSegs) - 1];
-
-                // Try to pull timing/metrics from the first flight of this journey
-                $firstFlightForLeg = isset($jFlightIds[0]) ? ($flights[$jFlightIds[0]] ?? null) : null;
-
-                $legData[] = [
-                    'flightIds'      => $jFlightIds,
-                    'segments'       => array_values($legSegs),
-                    'flightNumber'   => ($firstSegLeg['airline'] ?? '') . ($firstSegLeg['flightNum'] ?? ''),
-                    'origin'         => $firstSegLeg['departure'] ?? null,
-                    'destination'    => $lastSegLeg['arrival'] ?? null,
-                    'departureTime'  => self::dt($firstSegLeg['departureDate'] ?? null),
-                    'arrivalTime'    => self::dt($lastSegLeg['arrivalDate'] ?? null),
-                    'journeyTime'    => $firstFlightForLeg['journeyTime'] ?? null,
-                    'transferCount'  => $firstFlightForLeg['transferCount'] ?? null,
-                    'stops'          => max(count($legSegs) - 1, 0),
-                    'terminals'      => [
-                        'from' => $firstSegLeg['departureTerminal'] ?? null,
-                        'to'   => $lastSegLeg['arrivalTerminal'] ?? null,
-                    ],
-                    'equipment'      => $firstSegLeg['equipment'] ?? null,
-                    'cabin'          => $firstSegLeg['cabinClass'] ?? null,
-                    'bookingCode'    => $firstSegLeg['bookingCode'] ?? null,
-                    'availabilityCount' => $firstSegLeg['availabilityCount'] ?? 0,
-                ];
+            // Normalize associative journeys like ['journey_0' => [...]]
+            if (!empty($journeys) && array_keys($journeys) !== range(0, count($journeys) - 1)) {
+                $journeys = array_values($journeys);
             }
 
-            // If after carving there are no segments at all, skip this solution
-            if (empty($tripSegs)) continue;
+            $flightIds = [];
+            foreach ($journeys as $flightsInJourney) {
+                $flightIds = array_merge($flightIds, $flightsInJourney);
+            }
+            if (!$flightIds) continue;
 
-            /* ---------------- Baggage/Rules mapping need global index → segmentId ---------------- */
+            // Build segmentId → flightId map
+            $segToFlight = [];
+            $segIds = [];
+            foreach ($flightIds as $fid) {
+                foreach ($flights[$fid]['segmengtIds'] ?? [] as $sid) {
+                    $segIds[] = $sid;
+                    $segToFlight[$sid] = $fid; // link segment → flight
+                }
+            }
+
+            // Flatten segments and inject flightId
+            $tripSegs = array_values(array_filter(array_map(function ($id) use ($segments, $segToFlight) {
+                if (!isset($segments[$id])) return null;
+                $seg = $segments[$id];
+                $seg['flightId'] = $segToFlight[$id] ?? null; // inject flightId
+                return $seg;
+            }, $segIds)));
+
+            if (!$tripSegs) continue;
+
+            $firstSeg = $tripSegs[0];
+            $lastSeg  = $tripSegs[count($tripSegs) - 1];
+            $firstF   = $flights[$flightIds[0]] ?? null;
+
+            // 1-based index -> segmentId
             $idxToSegId = [];
             foreach ($tripSegs as $i => $s) {
-                if (!isset($s['segmentId'])) continue;
-                $idxToSegId[$i + 1] = $s['segmentId']; // PKFare uses 1-based indices
+                $idxToSegId[$i + 1] = $s['segmentId'];
             }
 
             // Baggage (ADT)
-            $adtChecked = [];
-            $adtCarry = [];
+            $adtChecked = []; $adtCarry = [];
             foreach (($sol['baggageMap']['ADT'] ?? []) as $b) {
                 foreach (($b['segmentIndexList'] ?? []) as $n) {
-                    $sid = $idxToSegId[$n] ?? null;
-                    if (!$sid) continue;
+                    $sid = $idxToSegId[$n] ?? null; if (!$sid) continue;
                     $adtChecked[$sid] = [
                         'amount' => $b['baggageAmount'] ?? null,
                         'weight' => $b['baggageWeight'] ?? null,
@@ -164,10 +99,10 @@ final class MapOffer
             $rulesADT = [];
             foreach (($sol['miniRuleMap']['ADT'] ?? []) as $block) {
                 $ids = array_values(array_filter(array_map(
-                    static fn($n) => $idxToSegId[$n] ?? null,
+                    fn($n) => $idxToSegId[$n] ?? null,
                     $block['segmentIndex'] ?? []
                 )));
-                $mini = array_map(static function ($r) {
+                $mini = array_map(function ($r) {
                     $label = match ($r['penaltyType'] ?? -1) {
                         0 => 'Refund',
                         1 => 'Change',
@@ -181,99 +116,94 @@ final class MapOffer
                 $rulesADT[] = ['segmentIds' => $ids, 'miniRules' => $mini];
             }
 
-            /* ---------------- Price breakdown (per pax * counts) ---------------- */
+            // Price breakdown
             $currency = $sol['currency'] ?? 'USD';
+            $base     = (float)($sol['adtFare'] ?? 0);
+            $tax      = (float)($sol['adtTax'] ?? 0);
+            $q        = (float)($sol['qCharge'] ?? 0);
+            $tkt      = (float)($sol['tktFee'] ?? 0);
+            $plat     = (float)($sol['platformServiceFee'] ?? 0);
+            $merch    = (float)($sol['merchantFee'] ?? 0);
+            $total    = $base + $tax + $q + $tkt + $plat + $merch;
 
-            $adtBase = (float)($sol['adtFare'] ?? 0);
-            $chdBase = (float)($sol['chdFare'] ?? 0);
-            $base = $adtBase * $passengers['adults'] + $chdBase * $passengers['children'];
+            // Carriers, last ticketing
+            $marketing = array_values(array_unique(array_map(fn($s) => $s['airline'] ?? null, $tripSegs)));
+            $operating = array_map(fn($s) => $s['opFltAirline'] ?? null, $tripSegs);
 
-            $adtTax = (float)($sol['adtTax'] ?? 0);
-            $chdTax = (float)($sol['chdTax'] ?? 0);
-            $tax = $adtTax * $passengers['adults'] + $chdTax * $passengers['children'];
+            $lastTktIso = null;
+            if ($firstF && !empty($firstF['lastTktTime'])) {
+                $lastTktIso = date(DATE_ATOM, ((int)$firstF['lastTktTime']) / 1000);
+            }
 
-            $q    = (float)($sol['qCharge'] ?? 0);
-            $tkt  = (float)($sol['tktFee'] ?? 0);
-            $plat = (float)($sol['platformServiceFee'] ?? 0);
-            $merch= (float)($sol['merchantFee'] ?? 0);
-
-            $total = $base + $tax + $q + $tkt + $plat + $merch;
-
-            /* ---------------- Carriers & last ticketing time ---------------- */
-            $marketing = array_values(array_unique(array_filter(array_map(
-                static fn($s) => $s['airline'] ?? null,
-                $tripSegs
-            ))));
-            $operating = array_values(array_filter(array_map(
-                static fn($s) => $s['opFltAirline'] ?? null,
-                $tripSegs
-            )));
-
-            $lastTktTimes = [];
-            foreach (array_unique($allFlightIds) as $fid) {
-                if (!empty($flights[$fid]['lastTktTime'])) {
-                    $lastTktTimes[] = (int)$flights[$fid]['lastTktTime'] / 1000;
+            // Build journeys output (UI-friendly)
+            $journeysOut = [];
+            foreach ($journeys as $index => $flightsInJourney) {
+                $key = 'journey_' . $index;
+                $journeysOut[$key] = [];
+                foreach ($flightsInJourney as $fid) {
+                    $flight = $flights[$fid] ?? null;
+                    if (!$flight) continue;
+                    foreach (($flight['segmengtIds'] ?? []) as $sid) {
+                        if (!isset($segments[$sid])) continue;
+                        $seg = $segments[$sid];
+                        $journeysOut[$key][] = [
+                            'airline'        => $seg['airline'] ?? '',
+                            'flightNum'      => $seg['flightNum'] ?? '',
+                            'arrival'        => $seg['arrival'] ?? '',
+                            'arrivalDate'    => self::dt($seg['strArrivalDate'] ?? null),
+                            'arrivalTime'    => $seg['strArrivalTime'] ?? '',
+                            'departure'      => $seg['departure'] ?? '',
+                            'departureDate'  => self::dt($seg['strDepartureDate'] ?? null),
+                            'departureTime'  => $seg['strDepartureTime'] ?? '',
+                            'bookingCode'    => $seg['bookingCode'] ?? '',
+                            'equipment'      => $seg['equipment'] ?? '',
+                            'cabinClass'     => $seg['cabinClass'] ?? '',
+                            'flightId'       => $seg['flightId'] ?? '',
+                        ];
+                    }
                 }
             }
-            $lastTktIso = !empty($lastTktTimes) ? date(DATE_ATOM, min($lastTktTimes)) : null;
-
-            /* ---------------- Overall origin/destination & round-trip check ---------------- */
-            $numLegs = count($legData);
-            $overallOrigin = $legData[0]['origin'] ?? ($tripSegs[0]['departure'] ?? null);
-            $overallFinalDestination = $legData[$numLegs - 1]['destination'] ?? ($tripSegs[count($tripSegs) - 1]['arrival'] ?? null);
-
-            // Heuristic: exactly two legs, and they reverse origin/destination → round trip
-            $isRoundTrip = $numLegs === 2
-                && !empty($legData[0]['origin']) && !empty($legData[1]['origin'])
-                && ($legData[0]['destination'] === $legData[1]['origin'])
-                && ($legData[0]['origin'] === $legData[1]['destination']);
-
-            // Legacy “flattened” fields (first leg for headers)
-            $firstLeg = $legData[0];
 
             $out[] = [
-                'id'           => $tripSegs[0]['segmentId'] ?? null,
-                'solutionKey'  => $sol['solutionKey'] ?? null,
-                'solutionId'   => $sol['solutionId'] ?? null,
-                'shoppingKey'  => $payload['shoppingKey'] ?? null,
+                'id' => $firstSeg['segmentId'] ?? null,
+                'solutionKey' => $sol['solutionKey'] ?? null,
+                'solutionId'  => $sol['solutionId'] ?? null,
+                'shoppingKey' => $payload['shoppingKey'] ?? null,
 
-                'platingCarrier'    => $sol['platingCarrier'] ?? null,
-                'marketingCarriers' => $marketing,
+                'platingCarrier' => $sol['platingCarrier'] ?? null,
+                'marketingCarriers' => array_values(array_filter($marketing)),
                 'operatingCarriers' => $operating,
 
-                'flightNumber'  => ($firstLeg['flightNumber'] ?? (($tripSegs[0]['airline'] ?? '') . ($tripSegs[0]['flightNum'] ?? ''))),
-                'origin'        => $overallOrigin,
-                'destination'   => $isRoundTrip ? ($legData[0]['destination'] ?? null) : $overallFinalDestination,
-                'departureTime' => $firstLeg['departureTime'] ?? self::dt($tripSegs[0]['departureDate'] ?? null),
-                'arrivalTime'   => $isRoundTrip
-                    ? ($legData[1]['arrivalTime'] ?? null)
-                    : self::dt($tripSegs[count($tripSegs) - 1]['arrivalDate'] ?? null),
+                'flightNumber' => ($firstSeg['airline'] ?? '') . ($firstSeg['flightNum'] ?? ''),
+                'origin' => $firstSeg['departure'] ?? null,
+                'destination' => $lastSeg['arrival'] ?? null,
+                'departureTime' => self::dt($firstSeg['departureDate'] ?? null),
+                'arrivalTime'   => self::dt($lastSeg['arrivalDate'] ?? null),
+                'journeyTime'   => $firstF['journeyTime'] ?? null,
+                'transferCount' => $firstF['transferCount'] ?? null,
+                'stops'         => max(count($tripSegs) - 1, 0),
+                'terminals'     => [
+                    'from' => $firstSeg['departureTerminal'] ?? null,
+                    'to'   => $lastSeg['arrivalTerminal'] ?? null
+                ],
+                'equipment'      => $firstSeg['equipment'] ?? null,
+                'cabin'          => $firstSeg['cabinClass'] ?? null,
+                'bookingCode'    => $firstSeg['bookingCode'] ?? null,
+                'availabilityCount' => $firstSeg['availabilityCount'] ?? 0,
 
-                // keep some metrics from the first leg for backward compatibility
-                'journeyTime'   => $firstLeg['journeyTime'] ?? null,
-                'transferCount' => $firstLeg['transferCount'] ?? null,
-                'stops'         => $firstLeg['stops'] ?? max(count($tripSegs) - 1, 0),
-                'terminals'     => $firstLeg['terminals'] ?? [],
-                'equipment'     => $firstLeg['equipment'] ?? null,
-                'cabin'         => $firstLeg['cabin'] ?? null,
-                'bookingCode'   => $firstLeg['bookingCode'] ?? null,
-                'availabilityCount' => $firstLeg['availabilityCount'] ?? 0,
+                'isVI' => in_array('VI', $sol['category'] ?? [], true),
 
-                'isVI'         => in_array('VI', $sol['category'] ?? [], true),
-
-                // expose legs for multi/return UI (prevents mixing)
-                'legs'         => $legData,
-                'passengers'   => $passengers,
+                'passengers' => $passengers,
 
                 'priceBreakdown' => [
-                    'currency'           => $currency,
-                    'base'               => $base,
-                    'taxes'              => $tax,
-                    'qCharge'            => $q,
-                    'tktFee'             => $tkt,
+                    'currency' => $currency,
+                    'base' => $base,
+                    'taxes' => $tax,
+                    'qCharge' => $q,
+                    'tktFee' => $tkt,
                     'platformServiceFee' => $plat,
-                    'merchantFee'        => $merch,
-                    'total'              => $total,
+                    'merchantFee' => $merch,
+                    'total' => $total,
                 ],
 
                 'baggage' => [
@@ -283,12 +213,14 @@ final class MapOffer
                     ],
                 ],
 
-                'rules'     => ['adt' => $rulesADT],
-                'flightIds' => $allFlightIds,
+                'rules' => ['adt' => $rulesADT],
+
+                'flightIds' => $flightIds,
                 'segments'  => $tripSegs,
+                'journeys'  => $journeysOut,
 
                 'lastTktTime' => $lastTktIso,
-                'expired'     => $lastTktIso ? (strtotime($lastTktIso) < time()) : false,
+                'expired' => $lastTktIso ? (strtotime($lastTktIso) < time()) : false,
             ];
         }
 
