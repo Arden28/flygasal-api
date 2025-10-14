@@ -176,7 +176,7 @@ class PKfareService
 
         Log::info('Payload Search: ', $payload);
 
-        return $payload;
+        return $this->post('/json/shoppingV8', $payload);
     }
 
 
