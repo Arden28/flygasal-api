@@ -154,7 +154,7 @@ class DashboardController extends Controller
 
             // SQL aggregation for revenue
             $revenueMap = $this->groupedCounts('transactions', function ($q) use ($from, $to) {
-                $q->where('type', 'booking')
+                $q->where('type', 'booking_payment')
                   ->where('status', 'completed')
                   ->whereBetween('created_at', [$from, $to]);
             }, $period, 'SUM(amount) as agg');
