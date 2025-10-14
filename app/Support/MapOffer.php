@@ -194,6 +194,17 @@ final class MapOffer
             }
             $expired = $lastTktIso ? (strtotime($lastTktIso) < time()) : false;
 
+            // ---- Stops convenience at offer root (keeps leg stops as-is) ----
+            $stopsByLeg = array_map(static fn(array $l): int => max(0, (int)($l['stops'] ?? 0)), $legs);
+            $totalStops = array_sum($stopsByLeg);
+            $outboundStops = $stopsByLeg[0] ?? null;
+            $returnStops = $stopsByLeg[1] ?? null;
+
+            // For single-leg (oneway) offers, expose stops at root for UI convenience.
+            // For multi-leg, leave root 'stops' null to avoid ambiguity; use totalStops/stopsByLeg instead.
+            $rootStops = (count($legs) === 1) ? ($outboundStops ?? 0) : null;
+
+
             $out[] = [
                 'id'             => $offerId,
                 'solutionKey'    => $solutionKey,
@@ -237,6 +248,11 @@ final class MapOffer
 
                 'lastTktTime' => $lastTktIso,
                 'expired'     => $expired,
+                'stops'        => $rootStops,      // only set for single-leg offers
+                'totalStops'   => $totalStops,     // sum across all legs
+                'stopsByLeg'   => $stopsByLeg,     // indexed in journey order
+                'outboundStops'=> $outboundStops,  // leg 0 if exists
+                'returnStops'  => $returnStops,    // leg 1 if exists
             ];
         }
 
