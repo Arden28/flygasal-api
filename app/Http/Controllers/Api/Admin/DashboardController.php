@@ -88,7 +88,7 @@ class DashboardController extends Controller
 
             // Revenue grouped by bucket
             $revenueMap = $this->groupedCounts('transactions', function ($q) use ($from, $to) {
-                $q->where('type', 'booking')
+                $q->where('type', 'booking_payment')
                   ->where('status', 'completed')
                   ->whereBetween('created_at', [$from, $to]);
             }, $period, 'SUM(amount) as agg');
