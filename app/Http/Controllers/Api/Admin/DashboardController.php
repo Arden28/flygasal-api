@@ -49,7 +49,8 @@ class DashboardController extends Controller
                 ->count();
 
             $unpaidOpen = Booking::query()
-                ->where('status', 'unpaid')
+                ->where('status', 'pending')
+                ->where('payment_status', 'unpaid')
                 ->count();
 
             $revenueInRange = (float) Transaction::query()
