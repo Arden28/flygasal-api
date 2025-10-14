@@ -163,14 +163,14 @@ class PKfareService
         }
 
         // If it’s a round-trip but only one leg is provided, add return leg automatically
-        if ($tripType === 'return' && count($flights) === 1 && !empty($criteria['returnDate'])) {
+        if (!empty($criteria['returnDate'])) {
             $outbound = $flights[0];
             $payload['search']['searchAirLegs'][] = [
-                'cabinClass'   => $outbound['cabinClass'] ?? $criteria['cabinClass'] ?? '',
+                'cabinClass'   => '',
                 'departureDate'=> $criteria['returnDate'],
-                'origin'       => $outbound['destination'], // reverse
-                'destination'  => $outbound['origin'],      // reverse
-                'airline'      => $outbound['airline'] ?? $criteria['airline'] ?? '',
+                'origin'       => $criteria['destination'], // reverse
+                'destination'  => $criteria['origin'],      // reverse
+                'airline'      => $criteria['airline'] ?? $criteria['airline'] ?? '',
             ];
         }
 
