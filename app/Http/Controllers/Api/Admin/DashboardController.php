@@ -53,7 +53,7 @@ class DashboardController extends Controller
                 ->count();
 
             $revenueInRange = (float) Transaction::query()
-                ->where('type', 'booking')
+                ->where('type', 'booking_payment')
                 ->where('status', 'completed')
                 ->whereBetween('created_at', [$from, $to])
                 ->sum('amount');
