@@ -155,7 +155,7 @@ class PKfareService
         foreach ($flights as $index => $flight) {
             $payload['search']['searchAirLegs'][] = [
                 'cabinClass'   => $flight['cabinClass'] ?? $criteria['cabinClass'] ?? '',
-                'departureDate'=> $flight['departureDate'],
+                'departureDate'=> $flight['depart'],
                 'origin'       => $flight['origin'],
                 'destination'  => $flight['destination'],
                 'airline'      => $flight['airline'] ?? $criteria['airline'] ?? '',
