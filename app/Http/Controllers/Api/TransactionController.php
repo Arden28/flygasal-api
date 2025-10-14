@@ -44,7 +44,7 @@ class TransactionController extends Controller
                 'data' => $transactions->map(function ($transaction) {
                     $type = $transaction->user
                         ? 'wallet_topup'
-                        : ($transaction->booking ? 'booking' : null);
+                        : ($transaction->booking ? 'booking_payment' : null);
 
                     $name = $type === 'wallet_topup'
                         ? optional($transaction->user)->name
