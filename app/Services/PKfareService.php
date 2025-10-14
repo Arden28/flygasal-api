@@ -117,130 +117,65 @@ class PKfareService
     /**
      * Searches for flights based on provided criteria.
      *
-     * Accepts either the legacy single-leg fields:
-     *   - origin, destination, departureDate, [returnDate]
-     * or a multi-leg array:
-     *   - flights: [
-     *       ['origin' => 'HKG', 'destination' => 'BKK', 'depart' => '2025-01-10', 'cabin' => '', 'airline' => ''],
-     *       ['origin' => 'BKK', 'destination' => 'KUL', 'depart' => '2025-01-14']
-     *     ]
-     *
-     * @param array $criteria
-     * @return array
+     * @param array $criteria Search parameters (tripType, flights, passengers, airline, etc.)
+     * @return array Flight search payload
      * @throws \Exception
      */
     public function searchFlights(array $criteria): array
     {
-        // ---- Auth
-        $partnerId = $this->apiKey;
-        $partnerKey = $this->apiSecret;
-        $sign = md5($partnerId . $partnerKey);
+        $tripType = $criteria['tripType'] ?? 'Oneway';
+        $flights = $criteria['flights'] ?? [];
 
-        // Normalize trip type for internal branching only
-        $tripTypeRaw = strtolower((string)($criteria['tripType'] ?? 'oneway'));
-        $tripType = in_array($tripTypeRaw, ['oneway','return','multi'], true) ? $tripTypeRaw : 'oneway';
+        if (empty($flights)) {
+            throw new \Exception("At least one flight leg must be provided.");
+        }
 
-        // Shared knobs
-        $adults   = (int)($criteria['adults']   ?? 1);
-        $children = (int)($criteria['children'] ?? 0);
-        $infants  = (int)($criteria['infants']  ?? 0);
-        $nonstop  = (int)($criteria['nonstop']  ?? 0);
-        $airline  = (string)($criteria['airline'] ?? '');
-        $solutions = (int)($criteria['solutions'] ?? 0);
-        $defaultCabin = (string)($criteria['cabinType'] ?? ''); // keep empty if you want supplier default
-
+        // Authentication payload
         $payload = [
             'authentication' => [
-                'partnerId' => $partnerId,
-                'sign'      => $sign,
+                'partnerId' => $this->apiKey,
+                'sign' => md5($this->apiKey . $this->apiSecret),
             ],
             'search' => [
-                'adults'         => $adults,
-                'children'       => $children,
-                'infants'        => $infants,
-                'nonstop'        => $nonstop,
-                'airline'        => $airline,
-                'solutions'      => $solutions,
-                'tag'            => '',
-                'returnTagPrice' => 'Y',          // keep current return pricing behavior
-                'searchAirLegs'  => [],           // filled below
+                'adults' => $criteria['adults'] ?? 1,
+                'children' => $criteria['children'] ?? 0,
+                'infants' => $criteria['infants'] ?? 0,
+                'nonstop' => $criteria['nonstop'] ?? 0,
+                'airline' => $criteria['airline'] ?? '',
+                'solutions' => $criteria['solutions'] ?? 0,
+                'tag' => '',
+                'returnTagPrice' => 'Y',
+                'searchAirLegs' => [],
             ],
         ];
 
-        // Helper to add a leg safely
-        $pushLeg = function(array $leg) use (&$payload, $defaultCabin, $airline) {
-            $origin      = trim((string)($leg['origin'] ?? ''));
-            $destination = trim((string)($leg['destination'] ?? ''));
-            $depart      = trim((string)($leg['depart'] ?? $leg['departureDate'] ?? ''));
-            if ($origin === '' || $destination === '' || $depart === '') {
-                return; // skip incomplete leg
-            }
-
-            $legCabin   = (string)($leg['cabin'] ?? $defaultCabin ?? '');
-            $legAirline = (string)($leg['airline'] ?? $airline ?? '');
-
+        // Build flight legs from the flights array
+        foreach ($flights as $index => $flight) {
             $payload['search']['searchAirLegs'][] = [
-                'cabinClass'    => $legCabin,         // empty string = supplier default
-                'departureDate' => $depart,           // YYYY-MM-DD
-                'destination'   => $destination,
-                'origin'        => $origin,
-                'airline'       => $legAirline,
+                'cabinClass'   => $flight['cabinClass'] ?? $criteria['cabinClass'] ?? '',
+                'departureDate'=> $flight['departureDate'],
+                'origin'       => $flight['origin'],
+                'destination'  => $flight['destination'],
+                'airline'      => $flight['airline'] ?? $criteria['airline'] ?? '',
             ];
-        };
-
-        /* ----------------------------------------------------------------
-        * 1) MULTI: if criteria['flights'] is provided, treat each item as a leg
-        * ---------------------------------------------------------------- */
-        if (!empty($criteria['flights']) && is_array($criteria['flights'])) {
-            foreach ($criteria['flights'] as $leg) {
-                if (!is_array($leg)) continue;
-                $pushLeg($leg);
-            }
-
-            // If caller passed explicit legs (even for a simple return), DON'T auto-add a reverse leg.
-            // This preserves your existing "return flight handling" while enabling multi city.
-        }
-        else {
-            /* ----------------------------------------------------------------
-            * 2) LEGACY oneway/return (back-compat with your current callers)
-            * ---------------------------------------------------------------- */
-            $origin        = (string)($criteria['origin'] ?? '');
-            $destination   = (string)($criteria['destination'] ?? '');
-            $departureDate = (string)($criteria['departureDate'] ?? '');
-            $returnDate    = (string)($criteria['returnDate'] ?? '');
-
-            // First leg (required)
-            $pushLeg([
-                'origin'        => $origin,
-                'destination'   => $destination,
-                'depart'        => $departureDate,
-                'cabin'         => $defaultCabin,
-                'airline'       => $airline,
-            ]);
-
-            // Optional reverse leg:
-            // We keep your exact behavior: if a returnDate is present, add the reverse leg.
-            if ($returnDate !== '') {
-                $pushLeg([
-                    'origin'        => $destination,
-                    'destination'   => $origin,
-                    'depart'        => $returnDate,
-                    'cabin'         => $defaultCabin,
-                    'airline'       => $airline,
-                ]);
-            }
         }
 
-        // Safety: ensure at least one leg exists
-        if (empty($payload['search']['searchAirLegs'])) {
-            throw new InvalidArgumentException('No valid legs provided for search.');
+        // If it’s a round-trip but only one leg is provided, add return leg automatically
+        if ($tripType === 'return' && count($flights) === 1 && !empty($criteria['returnDate'])) {
+            $outbound = $flights[0];
+            $payload['search']['searchAirLegs'][] = [
+                'cabinClass'   => $outbound['cabinClass'] ?? $criteria['cabinClass'] ?? '',
+                'departureDate'=> $criteria['returnDate'],
+                'origin'       => $outbound['destination'], // reverse
+                'destination'  => $outbound['origin'],      // reverse
+                'airline'      => $outbound['airline'] ?? $criteria['airline'] ?? '',
+            ];
         }
 
         Log::info('Payload Search: ', $payload);
 
-        return $this->post('/json/shoppingV8', $payload);
+        return $payload;
     }
-
 
 
     /**
