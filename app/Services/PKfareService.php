@@ -139,7 +139,7 @@ class PKfareService
                 'children' => $criteria['children'] ?? 0,
                 'infants' => $criteria['infants'] ?? 0,
                 'nonstop' => $criteria['nonstop'] ?? 0,
-                'airline' => "EK", // Added airline for debuging purpose, should be removed later
+                'airline' => $criteria['airline'] ?? '',
                 'solutions' => $criteria['solutions'] ?? 0,
                 'tag' => '',
                 'returnTagPrice' => 'Y',
