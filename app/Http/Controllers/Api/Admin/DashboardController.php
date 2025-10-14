@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Flights\Booking;
 use App\Models\Flights\Transaction;
@@ -9,6 +10,7 @@ use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -32,100 +34,98 @@ class DashboardController extends Controller
             [$labels, $keys] = $this->makeBuckets($from, $to, $period);
             $pointCount = count($keys);
 
-            // --- Totals ---
-            // Users (all-time)
+            // --- Totals (same semantics as before) ---
             $totalUsers = User::count();
 
-            // Bookings confirmed/paid in window
             $bookingStatusesConfirm = ['confirmed', 'completed', 'paid', 'issued'];
             $bookingsInRange = Booking::query()
                 ->whereBetween('created_at', [$from, $to])
                 ->whereIn('status', $bookingStatusesConfirm)
                 ->count();
 
-            // Cancelled in window
             $cancelledInRange = Booking::query()
                 ->whereBetween('created_at', [$from, $to])
                 ->where('status', 'cancelled')
                 ->count();
 
-            // Unpaid (current outstanding, all-time)
             $unpaidOpen = Booking::query()
                 ->where('status', 'unpaid')
                 ->count();
 
-            // Revenue from transactions (completed booking payments) in window
             $revenueInRange = (float) Transaction::query()
                 ->where('type', 'booking')
                 ->where('status', 'completed')
                 ->whereBetween('created_at', [$from, $to])
                 ->sum('amount');
 
-            // --- Trends (zero-filled, then fill from rows) ---
+            // --- Trends (SQL aggregation → fill zero-based arrays) ---
             $trendUsers       = array_fill(0, $pointCount, 0);
             $trendBookings    = array_fill(0, $pointCount, 0);
             $trendCancelled   = array_fill(0, $pointCount, 0);
             $trendUnpaid      = array_fill(0, $pointCount, 0);
             $trendRevenue     = array_fill(0, $pointCount, 0);
 
-            // Users created in window
-            User::query()
-                ->whereBetween('created_at', [$from, $to])
-                ->get(['id', 'created_at'])
-                ->each(function ($u) use (&$trendUsers, $keys, $period) {
-                    $k = $this->bucketKey($u->created_at, $period);
-                    if (($idx = array_search($k, $keys, true)) !== false) {
-                        $trendUsers[$idx] += 1;
-                    }
-                });
+            // Users created in window (grouped by bucket)
+            $userCounts = $this->groupedCounts('users', function ($q) use ($from, $to) {
+                $q->whereBetween('created_at', [$from, $to]);
+            }, $period);
 
-            // Bookings by status in window
-            Booking::query()
+            // Bookings grouped by bucket and status
+            $bucketFmt = $period === 'month' ? '%Y-%m' : '%Y-%m-%d';
+            $bookingRows = DB::table('bookings')
+                ->selectRaw("DATE_FORMAT(created_at, '{$bucketFmt}') as bucket, status, COUNT(*) as c")
                 ->whereBetween('created_at', [$from, $to])
-                ->get(['id', 'created_at', 'status'])
-                ->each(function ($b) use (&$trendBookings, &$trendCancelled, &$trendUnpaid, $keys, $period, $bookingStatusesConfirm) {
-                    $k = $this->bucketKey($b->created_at, $period);
-                    if (($idx = array_search($k, $keys, true)) === false) {
-                        return;
-                    }
-                    if (in_array($b->status, $bookingStatusesConfirm, true)) {
-                        $trendBookings[$idx] += 1;
-                    } elseif ($b->status === 'cancelled') {
-                        $trendCancelled[$idx] += 1;
-                    } elseif ($b->status === 'unpaid') {
-                        // Count new unpaid created in the bucket (sparkline signal)
-                        $trendUnpaid[$idx] += 1;
-                    }
-                });
+                ->groupBy('bucket', 'status')
+                ->get();
 
-            // Revenue by bucket
-            Transaction::query()
-                ->where('type', 'booking')
-                ->where('status', 'completed')
-                ->whereBetween('created_at', [$from, $to])
-                ->get(['amount', 'created_at'])
-                ->each(function ($t) use (&$trendRevenue, $keys, $period) {
-                    $k = $this->bucketKey($t->created_at, $period);
-                    if (($idx = array_search($k, $keys, true)) !== false) {
-                        $trendRevenue[$idx] += (float) $t->amount;
-                    }
-                });
+            $bookingByBucket = [];
+            foreach ($bookingRows as $r) {
+                $b = (string) $r->bucket;
+                $s = (string) $r->status;
+                $bookingByBucket[$b][$s] = (int) $r->c;
+            }
+
+            // Revenue grouped by bucket
+            $revenueMap = $this->groupedCounts('transactions', function ($q) use ($from, $to) {
+                $q->where('type', 'booking')
+                  ->where('status', 'completed')
+                  ->whereBetween('created_at', [$from, $to]);
+            }, $period, 'SUM(amount) as agg');
+
+            // Fill arrays by bucket key order
+            foreach ($keys as $i => $k) {
+                if (isset($userCounts[$k])) {
+                    $trendUsers[$i] = (int) $userCounts[$k];
+                }
+
+                $row = $bookingByBucket[$k] ?? [];
+                // Confirmed-ish
+                $trendBookings[$i]  = (int) array_sum(array_intersect_key($row, array_flip($bookingStatusesConfirm)));
+                // Cancelled count
+                $trendCancelled[$i] = (int) ($row['cancelled'] ?? 0);
+                // New unpaid created in this bucket (sparkline semantics kept)
+                $trendUnpaid[$i]    = (int) ($row['unpaid'] ?? 0);
+
+                if (isset($revenueMap[$k])) {
+                    $trendRevenue[$i] = (float) $revenueMap[$k];
+                }
+            }
 
             return response()->json([
                 'status' => true,
                 'data' => [
-                    'range'   => $range,
-                    'period'  => $period,         // "day" | "month"
-                    'labels'  => $labels,         // x-axis labels matching trends
-                    'currency'=> 'USD',           // adjust if multi-currency
-                    'totals'  => [
+                    'range'    => $range,
+                    'period'   => $period,        // "day" | "month"
+                    'labels'   => $labels,        // x-axis labels matching trends
+                    'currency' => 'USD',          // adjust if multi-currency
+                    'totals'   => [
                         'users'     => $totalUsers,
                         'bookings'  => $bookingsInRange,
                         'cancelled' => $cancelledInRange,
                         'unpaid'    => $unpaidOpen,
                         'revenue'   => $revenueInRange,
                     ],
-                    'trends'  => [
+                    'trends'   => [
                         'users'     => $trendUsers,
                         'bookings'  => $trendBookings,
                         'cancelled' => $trendCancelled,
@@ -151,17 +151,18 @@ class DashboardController extends Controller
             [$labels, $keys] = $this->makeBuckets($from, $to, $period);
             $series = array_fill(0, count($keys), 0.0);
 
-            Transaction::query()
-                ->where('type', 'booking')
-                ->where('status', 'completed')
-                ->whereBetween('created_at', [$from, $to])
-                ->get(['amount', 'created_at'])
-                ->each(function ($t) use (&$series, $keys, $period) {
-                    $k = $this->bucketKey($t->created_at, $period);
-                    if (($idx = array_search($k, $keys, true)) !== false) {
-                        $series[$idx] += (float) $t->amount;
-                    }
-                });
+            // SQL aggregation for revenue
+            $revenueMap = $this->groupedCounts('transactions', function ($q) use ($from, $to) {
+                $q->where('type', 'booking')
+                  ->where('status', 'completed')
+                  ->whereBetween('created_at', [$from, $to]);
+            }, $period, 'SUM(amount) as agg');
+
+            foreach ($keys as $i => $k) {
+                if (isset($revenueMap[$k])) {
+                    $series[$i] = (float) $revenueMap[$k];
+                }
+            }
 
             return response()->json([
                 'status' => true,
@@ -252,5 +253,27 @@ class DashboardController extends Controller
         return $period === 'month'
             ? $dt->copy()->startOfMonth()->format('Y-m')
             : $dt->copy()->startOfDay()->format('Y-m-d');
+    }
+
+    /**
+     * Group by day/month bucket using SQL and return map [bucket => aggregated value]
+     *
+     * @param  string   $table      Table name
+     * @param  callable $wheres     Closure(Query\Builder) to add where clauses
+     * @param  string   $period     'day' | 'month'
+     * @param  string   $valueExpr  Aggregation (e.g. 'COUNT(*) as agg', 'SUM(amount) as agg')
+     * @return array<string,int|float>  ['2025-10-01' => 3, '2025-10-02' => 5, ...]
+     */
+    private function groupedCounts(string $table, callable $wheres, string $period, string $valueExpr = 'COUNT(*) as agg'): array
+    {
+        $bucketFmt = $period === 'month' ? '%Y-%m' : '%Y-%m-%d';
+
+        $q = DB::table($table)
+            ->selectRaw("DATE_FORMAT(created_at, '{$bucketFmt}') as bucket, {$valueExpr}")
+            ->when(true, function ($qq) use ($wheres) { $wheres($qq); })
+            ->groupBy('bucket');
+
+        // pluck(agg, bucket) → ['bucket' => agg]
+        return $q->pluck('agg', 'bucket')->all();
     }
 }

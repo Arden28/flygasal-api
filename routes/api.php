@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\{
+    DashboardController,
     AirlineController,
     AirportController,
     RoleController,
@@ -15,7 +16,6 @@ use App\Http\Controllers\Api\{
     TransactionController
 };
 use App\Http\Controllers\{
-    DashboardController,
     SettingsController,
     WebhookController
 };
