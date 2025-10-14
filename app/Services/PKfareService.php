@@ -193,7 +193,7 @@ class PKfareService
                 'children' => $criteria['children'] ?? 0,
                 'infants' => $criteria['infants'] ?? 0,
                 // 'solutionId' => 'direct pricing',
-                'solutionId' => $criteria['solutionId'],
+                'solutionId' => "direct_pricing", // Removed solutionId default to force it to be provided
                 'solutionKey' => $criteria['solutionKey'] ?? '',
                 'cabin' => '',
                 'tag' => "",
