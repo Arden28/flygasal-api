@@ -52,7 +52,7 @@ class BookingController extends Controller
             $bookings = $request->user()->bookings()->with('transactions')->latest()->paginate(10);
         } else {
             // Admins/Agents can view all bookings
-            $bookings = Booking::with('transactions')->latest()->paginate(10);
+            $bookings = Booking::with('transactions')->latest()->get();
         }
 
         return response()->json([
