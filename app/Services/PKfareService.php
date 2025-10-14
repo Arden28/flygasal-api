@@ -126,6 +126,8 @@ class PKfareService
         $tripType = $criteria['tripType'] ?? 'Oneway';
         $flights = $criteria['flights'] ?? [];
 
+        Log::info('Search Criteria: ', $criteria['flights']);
+
         if (empty($flights)) {
             throw new \Exception("At least one flight leg must be provided.");
         }
