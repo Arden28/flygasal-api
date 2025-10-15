@@ -49,7 +49,7 @@ class BookingController extends Controller
         // For customers, show only their own bookings.
         // For admins/agents, potentially show all or filtered bookings based on permissions.
         if ($request->user()->hasRole('agent')) {
-            $bookings = $request->user()->bookings()->with('transactions')->latest()->paginate(250);
+            $bookings = Booking::where('user_id', $request->user()->id)->with('transactions')->latest()->paginate(250);
         } else {
             // Admins/Agents can view all bookings
             $bookings = Booking::with('transactions')->latest()->paginate(250);
