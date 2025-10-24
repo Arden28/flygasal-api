@@ -348,5 +348,130 @@ class UserController extends Controller
         }
     }
 
+    
+    /**
+     * Admin: deduct funds from a user's wallet.
+     *
+     * POST /api/admin/users/{id}/debit
+     * Body:
+     * - amount: numeric|min:0.01
+     * - currency: 3-letter code (e.g., KES, USD)
+     * - payment_gateway_reference: string|null (unique if provided)
+     * - payment_gateway: string|null (defaults to 'admin')
+     * - note: string|null
+     * - allow_negative: boolean|null (default false)  // optional, if you ever want to allow overdrafts
+     */
+    public function debit(Request $request, $id)
+    {
+        // $this->authorize('manage-wallets');
+
+        $validated = $request->validate([
+            'amount'    => 'required|numeric|min:0.01',
+            'currency'  => 'required|string|size:3',
+            'payment_gateway_reference' => 'nullable|string|max:64',
+            'payment_gateway' => 'nullable|string|max:64',
+            'note'      => 'nullable|string|max:500',
+            'allow_negative' => 'nullable|boolean',
+        ]);
+
+        $user = User::find($id);
+        if (!$user) {
+            return response()->json(['message' => 'User not found.'], 404);
+        }
+
+        // Generate a reference if none provided
+        $reference = $validated['payment_gateway_reference']
+            ?? strtoupper('ADMIN-'.bin2hex(random_bytes(6)));
+
+        // Idempotency: if a completed tx with same reference exists, return it
+        $existing = Transaction::where('payment_gateway_reference', $reference)->first();
+        if ($existing && $existing->status === 'completed') {
+            return response()->json([
+                'status'  => true,
+                'message' => 'Debit already processed.',
+                'data' => [
+                    'trx_id'         => $existing->payment_gateway_reference,
+                    'date'           => optional($existing->transaction_date)->toDateString(),
+                    'amount'         => (float) $existing->amount,
+                    'currency'       => $existing->currency,
+                    'payment_gateway'=> $existing->payment_gateway,
+                    'status'         => $existing->status,
+                    'balance_after'  => (float) $user->wallet_balance,
+                ],
+            ], 200);
+        }
+
+        $allowNegative = (bool) ($validated['allow_negative'] ?? false);
+
+        try {
+            $result = DB::transaction(function () use ($user, $validated, $reference, $allowNegative) {
+                // Lock the user row
+                $lockedUser = User::whereKey($user->id)->lockForUpdate()->first();
+
+                $before = (float) ($lockedUser->wallet_balance ?? 0.0);
+                $amount = (float) $validated['amount'];
+                $after  = $before - $amount;
+
+                if (!$allowNegative && $after < 0) {
+                    abort(409, 'Insufficient wallet balance for debit.');
+                }
+
+                // Create transaction as completed (admin debit)
+                $tx = Transaction::create([
+                    'user_id'    => $lockedUser->id,
+                    'booking_id' => null,
+                    'amount'     => $amount, // keep positive; we track via "type"
+                    'currency'   => strtoupper($validated['currency']),
+                    'type'       => 'wallet_debit',
+                    'status'     => 'completed',
+                    'payment_gateway_reference' => $reference,
+                    'transaction_date' => now(),
+                    'payment_gateway' => $validated['payment_gateway'] ?? 'admin',
+                    'description' => $validated['note'] ?? null,
+                ]);
+
+                // Debit wallet
+                $lockedUser->wallet_balance = $after;
+                $lockedUser->save();
+
+                return [$tx, $before, $after];
+            });
+
+            /** @var \App\Models\Flights\Transaction $tx */
+            [$tx, $before, $after] = $result;
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Debit successful.',
+                'data'    => [
+                    'trx_id'         => $tx->payment_gateway_reference,
+                    'date'           => optional($tx->transaction_date)->toDateString(),
+                    'amount'         => (float) $tx->amount,
+                    'currency'       => $tx->currency,
+                    'payment_gateway'=> $tx->payment_gateway,
+                    'status'         => $tx->status,
+                    'balance_before' => $before,
+                    'balance_after'  => $after,
+                    'performed_by'   => Auth::id(),
+                ],
+            ], 200);
+
+        } catch (Throwable $e) {
+            // $code = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+            // if ($code === 409) {
+            //     return response()->json([
+            //         'status' => false,
+            //         'message' => $e->getMessage(),
+            //     ], 409);
+            // }
+
+            Log::error('Admin debit failed: '.$e->getMessage(), ['exception' => $e]);
+            return response()->json([
+                'status'  => false,
+                'message' => 'Failed to debit funds. Please try again later.',
+                'error'   => app()->environment('production') ? null : $e->getMessage(),
+            ], 500);
+        }
+    }
 
 }

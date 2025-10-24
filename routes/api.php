@@ -191,6 +191,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('users', UserController::class);
         Route::post('/users/{id}/approve', [UserController::class, 'approve']);
         Route::post('/users/{id}/deposit', [UserController::class, 'deposit']);
+        Route::post('/users/{id}/debit', [UserController::class, 'debit']);
 
         // System Settings
         Route::get('/settings',         [SettingsController::class, 'getGeneralSettings']);

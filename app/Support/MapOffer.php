@@ -246,6 +246,7 @@ final class MapOffer
                 // Full ordered segments across ALL legs (with flightId & iso helpers)
                 'segments' => self::segmentsFromIds($globalSegList, $segmentsById, $flightsById),
 
+                'journeyTime'   => $journeyTime ?? null,
                 'lastTktTime' => $lastTktIso,
                 'expired'     => $expired,
                 'stops'        => $rootStops,      // only set for single-leg offers
