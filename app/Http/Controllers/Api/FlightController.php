@@ -141,6 +141,8 @@ class FlightController extends Controller
             // 4. Return successful response with flight data
             $data = $precisePricing['data'] ?? $precisePricing;
 
+            Log::info('Precise pricing data', $data);
+
             return response()->json([
                 'message'   => 'Precise pricing retrieved successfully.',
                 'errorMsg'  => $precisePricing['errorMsg'] ?? null,
