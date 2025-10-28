@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\{
     FlightController,
     PaymentGatewayController,
     ProfileController,
+    TelegramAuthController,
     TransactionController
 };
 use App\Http\Controllers\{
@@ -70,6 +71,7 @@ Route::prefix('pkfare')->group(function () {
 */
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login',    [AuthController::class, 'login']);
+Route::post('/auth/telegram', [TelegramAuthController::class, 'login']);
 
 /*
 |--------------------------------------------------------------------------
