@@ -80,21 +80,28 @@ class TelegramAuthController extends Controller
 
     private function verifyTelegramAuth(array $data, string $botToken): bool
     {
-        $checkHash = $data['hash'];
+        if (!$botToken) return false;
+
+        $checkHash = (string)($data['hash'] ?? '');
         unset($data['hash']);
 
-        // build data_check_string
-        ksort($data);
-        $pairs = [];
+        // Keep only scalar fields (Telegram sends scalars for login)
+        $clean = [];
         foreach ($data as $k => $v) {
+            if (is_scalar($v)) $clean[$k] = (string)$v;
+        }
+
+        ksort($clean); // sort by keys
+        $pairs = [];
+        foreach ($clean as $k => $v) {
             $pairs[] = "{$k}={$v}";
         }
         $dataCheckString = implode("\n", $pairs);
 
-        // per Telegram spec:
-        $secretKey = hash('sha256', $botToken, true);
-        $hash = hash_hmac('sha256', $dataCheckString, $secretKey);
+        $secretKey = hash('sha256', $botToken, true);        // binary key
+        $hash      = hash_hmac('sha256', $dataCheckString, $secretKey);
 
         return hash_equals($hash, $checkHash);
     }
+
 }
