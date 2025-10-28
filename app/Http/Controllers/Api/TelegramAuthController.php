@@ -67,17 +67,14 @@ class TelegramAuthController extends Controller
 
         return response()->json([
             'status' => 'ok',
-            'user'   => [
-                'id'       => $user->id,
-                'name'     => $user->name,
-                'email'    => $user->email,
-                'role'     => $user->role ?? 'user',
-                'telegram' => [
-                    'id'       => $user->telegram_id,
-                    'username' => $user->telegram_username,
-                ],
+            'user' => $user,
+            'role' => $user->getRoleNames()->first() ?? 'No role assigned', // Single role or fallback
+            'telegram' => [
+                'id'       => $user->telegram_id,
+                'username' => $user->telegram_username,
             ],
-            'token'  => $token, // omit if session-cookie is enough
+            'access_token' => $token,
+            'token_type' => 'Bearer',
         ]);
     }
 

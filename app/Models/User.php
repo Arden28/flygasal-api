@@ -40,6 +40,8 @@ class User extends Authenticatable
         'agency_currency',
         'agency_markup',
         'password', // Added to allow mass-assignment
+        'telegram_id',
+        'telegram_username',
     ];
 
     /**
