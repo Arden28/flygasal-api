@@ -91,7 +91,13 @@ final class MapOffer
                         }
 
                         // Attach flightId & ISO helpers (preserve raw)
-                        $legSegments[] = self::withIsoTimes($seg + ['flightId' => $fid]);
+                        $segWith = self::withIsoTimes($seg + ['flightId' => $fid]);
+
+                        // Tag with authoritative journey metadata
+                        $segWith['journeyKey'] = $jKey;         // e.g. "journey_0"
+                        $segWith['legIndex']   = count($legs);  // 0-based index for the leg being built
+
+                        $legSegments[] = $segWith;
 
                         // Global 1-based index mapping
                         $globalIdxToSegId[count($globalSegList) + 1] = $sid;
@@ -124,7 +130,7 @@ final class MapOffer
 
                 $legs[] = [
                     'flightIds'     => $legFlightIds,
-                    'segments'      => $legSegments, // full objects (with flightId & iso helpers)
+                    'segments'      => $legSegments, // full objects (with flightId, iso helpers, journey tags)
                     'origin'        => $firstSeg['departure'] ?? null,
                     'destination'   => $lastSeg['arrival'] ?? null,
                     'departureTime' => self::dtMs($firstSeg['departureDate'] ?? null),
@@ -204,6 +210,17 @@ final class MapOffer
             // For multi-leg, leave root 'stops' null to avoid ambiguity; use totalStops/stopsByLeg instead.
             $rootStops = (count($legs) === 1) ? ($outboundStops ?? 0) : null;
 
+            // Build flat, ordered segments directly from the coherent legs
+            $flatSegments = [];
+            $seen = [];
+            foreach ($legs as $leg) {
+                foreach ($leg['segments'] as $segObj) {
+                    $sid = $segObj['segmentId'] ?? null;
+                    if ($sid && isset($seen[$sid])) continue;
+                    if ($sid) $seen[$sid] = true;
+                    $flatSegments[] = $segObj;
+                }
+            }
 
             $out[] = [
                 'id'             => $offerId,
@@ -243,8 +260,8 @@ final class MapOffer
 
                 'flightIds' => array_values(array_unique($flightIdsAll)),
 
-                // Full ordered segments across ALL legs (with flightId & iso helpers)
-                'segments' => self::segmentsFromIds($globalSegList, $segmentsById, $flightsById),
+                // Full ordered segments across ALL legs (with flightId, iso helpers, and journey tags)
+                'segments' => $flatSegments,
 
                 'journeyTime'   => $journeyTime ?? null,
                 'lastTktTime' => $lastTktIso,
@@ -476,6 +493,7 @@ final class MapOffer
 
     /**
      * Materialize ordered segment IDs into full segment objects, injecting flightId and ISO helpers.
+     * (Kept as-is for compatibility; not used in the new 'segments' assembly.)
      */
     private static function segmentsFromIds(array $ids, array $segmentsById, array $flightsById): array
     {
