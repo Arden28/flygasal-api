@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:5173', 'https://flygasal.vercel.app'],
+    'allowed_origins' => ['http://localhost:5173', 'https://flygasal.vercel.app', 'https://flygasal.net'],
 
     'allowed_origins_patterns' => [],
 
