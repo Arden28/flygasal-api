@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/assets/img/logo/flygasal.png" alt="FlyGasal Logo" width="180" />
+  <img src="public/flygasal.png" alt="FlyGasal Logo" width="180" />
   <br />
   
   <h1>✈️ FlyGasal Flight Management System</h1>
