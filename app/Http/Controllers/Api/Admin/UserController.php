@@ -146,6 +146,7 @@ class UserController extends Controller
                 'name' => 'sometimes|required|string|max:255',
                 'email' => 'sometimes|required|string|email|max:255|unique:users,email,' . $user->id,
                 'password' => 'nullable|string|min:8', // Password can be updated, or left null
+                'status' => 'sometimes|string|nullable', // Password can be updated, or left null
                 'roles' => 'nullable|array',
                 'roles.*' => 'string|exists:roles,name',
             ]);
@@ -348,7 +349,7 @@ class UserController extends Controller
         }
     }
 
-    
+
     /**
      * Admin: deduct funds from a user's wallet.
      *
