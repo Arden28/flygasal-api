@@ -1,66 +1,86 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+<div align="center">
+  <img src="public/assets/img/logo/flygasal.png" alt="FlyGasal Logo" width="180" />
+  <br />
+  
+  <h1>✈️ FlyGasal Flight Management System</h1>
+  
+  <p>
+    <strong>Next-Generation B2B Flight Booking & Agency Management Platform</strong>
+  </p>
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+  <p>
+    <a href="#-features">Features</a> •
+    <a href="#-tech-stack">Tech Stack</a> •
+    <a href="#-getting-started">Getting Started</a> •
+    <a href="#-screenshots">Screenshots</a>
+  </p>
 
-## About Laravel
+  ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+  ![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+  ![Laravel](https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)
+  ![Vite](https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=white)
+</div>
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 📖 Overview
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+**FlyGasal** is a comprehensive travel technology solution designed to bridge the gap between flight suppliers (like PKFare) and travel agencies. It features a dual-interface system: a **Client Portal** for agents to book flights and manage wallets, and a robust **Admin Dashboard** for operational oversight, financial auditing, and user management.
 
-## Learning Laravel
+The platform focuses on a "World-Class" UI/UX, utilizing a clean **Bento Grid** layout, smooth transitions, and a distinctive Orange (`#EB7313`) brand identity.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## ✨ Features
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### 🏢 Agent / Client Portal
+- **Flight Search & Booking:** Real-time availability searching with complex filtering (Stops, Airlines, Price).
+- **Digital Wallet System:** Secure top-up requests and instant wallet payments for bookings.
+- **Itinerary Management:** Detailed booking history with status tracking (Issued, Pending, Cancelled).
+- **E-Ticket Generation:** One-click PDF ticket generation with QR codes.
+- **Responsive Design:** Fully optimized mobile and desktop experience.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 2000 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 🛡️ Admin Dashboard
+- **Command Center:** High-level analytics with Sales Charts (Chart.js) and financial trends.
+- **User Management:** Full CRUD for users with Role-Based Access Control (Admin, Agent, Client).
+- **Financial Auditing:**
+    - Transaction logs with filtering and export (Excel/CSV).
+    - Wallet approval/rejection workflows.
+    - Automated invoice generation.
+- **System Configuration:** Manage API keys (PKFare), SMTP settings, and notification preferences via a GUI.
 
-## Laravel Sponsors
+## 🛠 Tech Stack
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+### Frontend
+- **Framework:** React 18
+- **Build Tool:** Vite
+- **Styling:** Tailwind CSS (Custom config with Brand Orange `#EB7313`)
+- **Icons:** Lucide React & Heroicons
+- **Charts:** Chart.js & React-Chartjs-2
+- **Animations:** Framer Motion & Canvas Confetti
+- **PDF/Excel:** jsPDF & XLSX
+- **State Management:** Context API
 
-### Premium Partners
+### Backend (API)
+- **Framework:** Laravel (PHP)
+- **Database:** MySQL
+- **Authentication:** Sanctum / JWT
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
+## 📸 Screenshots
 
-## Contributing
+| Admin Dashboard | User Management |
+|:---:|:---:|
+<!-- | *Place your dashboard screenshot here* | *Place your user table screenshot here* | -->
+| **Bento Grid Analytics** | **Advanced Filtering & Actions** |
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+| Booking Confirmation | Wallet System |
+|:---:|:---:|
+<!-- | *Place your confirmation page screenshot here* | *Place your wallet modal screenshot here* | -->
+| **Digital Ticket UI** | **Top-up & Deduction Flow** |
 
-## Code of Conduct
+## 🚀 Getting Started
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Prerequisites
+- Node.js (v16+)
+- PHP (v8.1+)
+- Composer
+- MySQL
 
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
