@@ -62,6 +62,7 @@ class UserController extends Controller
                 'agency_name' => 'nullable|string|max:255',
                 'agency_license' => 'nullable|string|max:255',
                 'agency_city' => 'nullable|string|max:255',
+                'agency_country' => 'nullable|string|max:255',
                 'agency_address' => 'nullable|string|max:255',
                 'agency_logo' => 'nullable|image|mimes:png,jpg,jpeg,gif,svg|max:2048', // Optional file upload
             ]);
@@ -75,6 +76,7 @@ class UserController extends Controller
                 'agency_name' => $validatedData['agency_name'] ?? null,
                 'agency_license' => $validatedData['agency_license'] ?? null,
                 'agency_city' => $validatedData['agency_city'] ?? null,
+                'agency_country' => $validatedData['agency_country'] ?? null,
                 'agency_address' => $validatedData['agency_address'] ?? null,
                 'agency_logo' => $validatedData['agency_logo'] ?? null,
                 'is_active' => true
