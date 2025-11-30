@@ -16,12 +16,12 @@ class TelegramAuthController extends Controller
         // 1. Get Token (Try Config -> Env -> Hardcoded Fallback)
         // We use config() because env() returns null if config is cached.
         // $botToken = config('services.telegram.bot_token') ?? env('TELEGRAM_BOT_TOKEN');
-        $botToken = "8099340852:AAGrm3O1SwQCQjc-LsCWlo_CvUNCW_K3pg4"; // TEMPORARY HARDCODED FOR TESTING
+        $botToken = "8099340852:AAFEsl1rLoJoCKODLyoY2XP8R5g6sbMGcxk"; // TEMPORARY HARDCODED FOR TESTING
 
         // TEMPORARY DEBUG FALLBACK:
         // If the above are null, use the token you gave me to prove it's a config issue.
         if (!$botToken) {
-            $botToken = "8099340852:AAGrm3O1SwQCQjc-LsCWlo_CvUNCW_K3pg4";
+            $botToken = "8099340852:AAFEsl1rLoJoCKODLyoY2XP8R5g6sbMGcxk";
             Log::warning('Using hardcoded fallback token. Check your .env or config cache!');
         }
 
