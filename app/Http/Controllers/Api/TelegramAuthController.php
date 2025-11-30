@@ -4,109 +4,116 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use Spatie\Permission\Models\Role;
 
 class TelegramAuthController extends Controller
 {
     public function login(Request $request)
     {
+        // 1. Debug: Check if Token is loaded
         $botToken = env('TELEGRAM_BOT_TOKEN');
+        if (empty($botToken)) {
+            Log::error('TELEGRAM_BOT_TOKEN is missing or empty in .env');
+            return response()->json(['error' => 'Server Configuration Error'], 500);
+        }
 
-        // 1. Get all data, but separate the hash immediately
+        // 2. Get Data
         $data = $request->all();
         $checkHash = $data['hash'] ?? '';
 
-        // 2. Define the ONLY keys Telegram sends/signs
-        // If the frontend sends "remember_me" or "_token", it breaks the hash unless we ignore it.
-        $allowedKeys = ['auth_date', 'first_name', 'id', 'last_name', 'photo_url', 'username'];
+        // Log the raw incoming data to see what React sent
+        Log::info('--- TELEGRAM LOGIN ATTEMPT ---');
+        Log::info('Incoming Data:', $data);
 
-        // 3. Prepare data for checking
+        // 3. Filter Keys
+        $allowedKeys = ['auth_date', 'first_name', 'id', 'last_name', 'photo_url', 'username'];
         $dataToCheck = [];
 
         foreach ($allowedKeys as $key) {
-            // Only add the key if it exists in the request AND is not null
-            // Telegram omits keys (like username/last_name) if they are empty.
             if (isset($data[$key])) {
                 $dataToCheck[] = $key . '=' . $data[$key];
             }
         }
 
-        // 4. Sort alphabetically (Critical Step)
+        // 4. Sort
         sort($dataToCheck);
 
-        // 5. Create the check string
+        // 5. Create String
         $stringToCheck = implode("\n", $dataToCheck);
 
-        // 6. Generate Secret Key & Hash
+        // 6. Hash
         $secretKey = hash('sha256', $botToken, true);
         $hash = hash_hmac('sha256', $stringToCheck, $secretKey);
 
-        // --- DEBUGGING BLOCK (Uncomment if still failing) ---
-        // Log::info("Telegram String to Check: \n" . $stringToCheck);
-        // Log::info("Generated Hash: " . $hash);
-        // Log::info("Received Hash: " . $checkHash);
-        // ----------------------------------------------------
+        // --- CRITICAL DEBUGGING LOGS ---
+        Log::info("Computed String to Check:\n" . $stringToCheck);
+        Log::info("Computed Hash: " . $hash);
+        Log::info("Received Hash: " . $checkHash);
+        // -------------------------------
 
-        // 7. Compare Hash
+        // 7. Compare
         if (strcmp($hash, $checkHash) !== 0) {
+            Log::error('Telegram Hash Mismatch!');
             return response()->json([
-                'error' => 'Data integrity check failed. Data is not from Telegram.',
-                // 'debug_message' => 'Check Laravel logs for details' // only for dev
+                'error' => 'Data integrity check failed.',
+                'server_string' => $stringToCheck, // Return this temporarily to see it in Network tab
+                'server_hash' => $hash,
+                'received_hash' => $checkHash
             ], 403);
         }
 
-        // 8. Check Outdated (Replay Attack Protection)
+        // 8. Check Date
         if ((time() - $data['auth_date']) > 86400) {
+            Log::error('Telegram Data Outdated');
             return response()->json(['error' => 'Data is outdated'], 403);
         }
 
-        // 9. Login or Register Logic
-        $user = User::firstOrCreate(
-            ['telegram_id' => $data['id']],
-            [
-                'name' => $data['first_name'] . ' ' . ($data['last_name'] ?? ''),
-                'telegram_username' => $data['username'] ?? null,
-                'photo_url' => $data['photo_url'] ?? null,
-                'password' => Hash::make(Str::random(16)),
-                'email' => $data['id'] . '@flygasal.telegram.bot'
-            ]
-        );
+        // 9. Success Logic
+        try {
+            $user = User::firstOrCreate(
+                ['telegram_id' => $data['id']],
+                [
+                    'name' => $data['first_name'] . ' ' . ($data['last_name'] ?? ''),
+                    'telegram_username' => $data['username'] ?? null,
+                    'photo_url' => $data['photo_url'] ?? null,
+                    'password' => Hash::make(Str::random(16)),
+                    'email' => $data['id'] . '@flygasal.telegram.bot'
+                ]
+            );
 
-        // 10. Role Assignment (Only for new users)
-        if ($user->wasRecentlyCreated) {
-            try {
-                $user->assignRole('agent');
-            } catch (\Exception $e) {
-                Log::error('Role "agent" does not exist: ' . $e->getMessage());
+            if ($user->wasRecentlyCreated) {
+                // Ensure you have Spatie Permission installed, otherwise comment this out
+                if (method_exists($user, 'assignRole')) {
+                    $user->assignRole('agent');
+                }
             }
-        }
 
-        // Optional: Update info for returning users
-        if (!$user->wasRecentlyCreated) {
-            $user->update([
-                'name' => $data['first_name'] . ' ' . ($data['last_name'] ?? ''),
-                'photo_url' => $data['photo_url'] ?? $user->photo_url,
-                'telegram_username' => $data['username'] ?? $user->telegram_username,
+            // Update existing user data
+            if (!$user->wasRecentlyCreated) {
+                 $user->update([
+                    'name' => $data['first_name'] . ' ' . ($data['last_name'] ?? ''),
+                    'photo_url' => $data['photo_url'] ?? $user->photo_url,
+                    'telegram_username' => $data['username'] ?? $user->telegram_username,
+                 ]);
+            }
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            Log::info('Telegram Login Success: User ID ' . $user->id);
+
+            return response()->json([
+                'status' => 'ok',
+                'user' => $user,
+                'access_token' => $token,
+                'token_type' => 'Bearer',
             ]);
+
+        } catch (\Exception $e) {
+            Log::error('DB Error during Telegram Login: ' . $e->getMessage());
+            return response()->json(['error' => 'Database error'], 500);
         }
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'status' => 'ok',
-            'user' => $user,
-            'role' => $user->getRoleNames()->first() ?? 'No role assigned',
-            'telegram' => [
-                'id'       => $user->telegram_id,
-                'username' => $user->telegram_username,
-            ],
-            'access_token' => $token,
-            'token_type' => 'Bearer',
-        ]);
     }
 }
