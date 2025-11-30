@@ -13,6 +13,8 @@ class TelegramAuthController extends Controller
 {
     public function login(Request $request)
     {
+
+        Log::info('--- TELEGRAM LOGIN ATTEMPT ---');
         // 1. Debug: Check if Token is loaded
         $botToken = env('TELEGRAM_BOT_TOKEN');
         // if (empty($botToken)) {
