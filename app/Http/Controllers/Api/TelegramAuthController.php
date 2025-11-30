@@ -80,7 +80,19 @@ public function login(Request $request)
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json(['token' => $token, 'user' => $user]);
+        // return response()->json(['token' => $token, 'user' => $user]);
+
+        return response()->json([
+            'status' => 'ok',
+            'user' => $user,
+            'role' => $user->getRoleNames()->first() ?? 'No role assigned', // Single role or fallback
+            'telegram' => [
+                'id'       => $user->telegram_id,
+                'username' => $user->telegram_username,
+            ],
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+        ]);
     }
 
     // public function login(Request $request)
