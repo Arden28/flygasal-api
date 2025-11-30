@@ -13,22 +13,20 @@ class TelegramAuthController extends Controller
 {
     public function login(Request $request)
     {
+        // 1. Get Token (Try Config -> Env -> Hardcoded Fallback)
+        // We use config() because env() returns null if config is cached.
+        $botToken = config('services.telegram.bot_token') ?? env('TELEGRAM_BOT_TOKEN');
 
-        Log::info('--- TELEGRAM LOGIN ATTEMPT ---');
-        // 1. Debug: Check if Token is loaded
-        $botToken = env('TELEGRAM_BOT_TOKEN');
-        // if (empty($botToken)) {
-        //     Log::error('TELEGRAM_BOT_TOKEN is missing or empty in .env');
-        //     return response()->json(['error' => 'Server Configuration Error'], 500);
-        // }
+        // TEMPORARY DEBUG FALLBACK:
+        // If the above are null, use the token you gave me to prove it's a config issue.
+        if (!$botToken) {
+            $botToken = "8099340852:AAGrm3O1SwQCQjc-LsCWlo_CvUNCW_K3pg4";
+            Log::warning('Using hardcoded fallback token. Check your .env or config cache!');
+        }
 
         // 2. Get Data
         $data = $request->all();
         $checkHash = $data['hash'] ?? '';
-
-        // Log the raw incoming data to see what React sent
-        Log::info('--- TELEGRAM LOGIN ATTEMPT ---');
-        Log::info('Incoming Data:', $data);
 
         // 3. Filter Keys
         $allowedKeys = ['auth_date', 'first_name', 'id', 'last_name', 'photo_url', 'username'];
@@ -40,40 +38,37 @@ class TelegramAuthController extends Controller
             }
         }
 
-        // 4. Sort
+        // 4. Sort Alphabetically
         sort($dataToCheck);
 
-        // 5. Create String
+        // 5. Create String (Implode with NEWLINE character)
         $stringToCheck = implode("\n", $dataToCheck);
 
-        // 6. Hash
+        // 6. Generate Secret Key & Hash
+        // The secret key is the SHA256 hash of the bot token (binary)
         $secretKey = hash('sha256', $botToken, true);
         $hash = hash_hmac('sha256', $stringToCheck, $secretKey);
 
-        // --- CRITICAL DEBUGGING LOGS ---
-        Log::info("Computed String to Check:\n" . $stringToCheck);
-        Log::info("Computed Hash: " . $hash);
-        Log::info("Received Hash: " . $checkHash);
-        // -------------------------------
-
         // 7. Compare
         if (strcmp($hash, $checkHash) !== 0) {
-            Log::error('Telegram Hash Mismatch!');
+            Log::error('Telegram Hash Mismatch!', [
+                'computed_hash' => $hash,
+                'received_hash' => $checkHash,
+                'used_token_substring' => substr($botToken, 0, 5) . '...', // Check if token was loaded
+            ]);
+
             return response()->json([
                 'error' => 'Data integrity check failed.',
-                'server_string' => $stringToCheck, // Return this temporarily to see it in Network tab
-                'server_hash' => $hash,
-                'received_hash' => $checkHash
+                'hint' => 'Check laravel.log for "used_token_substring" to see if token is loaded.'
             ], 403);
         }
 
-        // 8. Check Date
+        // 8. Check Date (24 hours)
         if ((time() - $data['auth_date']) > 86400) {
-            Log::error('Telegram Data Outdated');
             return response()->json(['error' => 'Data is outdated'], 403);
         }
 
-        // 9. Success Logic
+        // 9. Success: Login/Register
         try {
             $user = User::firstOrCreate(
                 ['telegram_id' => $data['id']],
@@ -86,14 +81,12 @@ class TelegramAuthController extends Controller
                 ]
             );
 
-            if ($user->wasRecentlyCreated) {
-                // Ensure you have Spatie Permission installed, otherwise comment this out
-                if (method_exists($user, 'assignRole')) {
-                    $user->assignRole('agent');
-                }
+            // Assign Role if new
+            if ($user->wasRecentlyCreated && method_exists($user, 'assignRole')) {
+                $user->assignRole('agent');
             }
 
-            // Update existing user data
+            // Update profile if returning
             if (!$user->wasRecentlyCreated) {
                  $user->update([
                     'name' => $data['first_name'] . ' ' . ($data['last_name'] ?? ''),
@@ -104,8 +97,6 @@ class TelegramAuthController extends Controller
 
             $token = $user->createToken('auth_token')->plainTextToken;
 
-            Log::info('Telegram Login Success: User ID ' . $user->id);
-
             return response()->json([
                 'status' => 'ok',
                 'user' => $user,
@@ -114,7 +105,7 @@ class TelegramAuthController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('DB Error during Telegram Login: ' . $e->getMessage());
+            Log::error('DB Error: ' . $e->getMessage());
             return response()->json(['error' => 'Database error'], 500);
         }
     }
